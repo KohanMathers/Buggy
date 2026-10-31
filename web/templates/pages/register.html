@@ -1,0 +1,20 @@
+{{define "content"}}
+<div class="auth-wrap">
+  <div class="auth-logo">{{template "logo" .}} {{$t := or .Cfg.Instance.Title .Cfg.Instance.Name}}{{if ne $t "-"}}{{$t}}{{end}}</div>
+  <div class="card">
+    <h1>{{.T "register.title" "Sign up to continue"}}</h1>
+    {{with .Err "_"}}<div class="flash flash-error">{{.}}</div>{{end}}
+    {{if .Cfg.Auth.Providers}}<div class="oauth-buttons">{{range .Cfg.Auth.Providers}}<a class="btn btn-block" href="/auth/{{.ID}}">Sign up with {{or .Name .ID}}</a>{{end}}</div><div class="divider">or</div>{{end}}
+    <form method="post" action="/register">
+      {{template "csrf" .}}<input type="hidden" name="next" value="{{.FormValue "next"}}">
+      <div class="field {{if .Err "username"}}has-error{{end}}"><label for="username">Username</label><input type="text" id="username" name="username" value="{{.FormValue "username"}}" autocomplete="username" required autofocus pattern="[A-Za-z0-9_][A-Za-z0-9_.\-]{1,30}[A-Za-z0-9_]">{{with .Err "username"}}<div class="error">{{.}}</div>{{end}}</div>
+      <div class="field {{if .Err "email"}}has-error{{end}}"><label for="email">Email <span class="muted small">(optional, for notifications)</span></label><input type="email" id="email" name="email" value="{{.FormValue "email"}}" autocomplete="email">{{with .Err "email"}}<div class="error">{{.}}</div>{{end}}</div>
+      <div class="field {{if .Err "password"}}has-error{{end}}"><label for="password">Password</label><input type="password" id="password" name="password" autocomplete="new-password" required minlength="{{.Cfg.Auth.Local.MinPassword}}">{{with .Err "password"}}<div class="error">{{.}}</div>{{end}}</div>
+      <div class="field {{if .Err "password2"}}has-error{{end}}"><label for="password2">Confirm password</label><input type="password" id="password2" name="password2" autocomplete="new-password" required>{{with .Err "password2"}}<div class="error">{{.}}</div>{{end}}</div>
+      {{if .Captcha "register"}}{{template "captcha" .}}{{end}}
+      <button class="btn btn-primary btn-block" type="submit">Create account</button>
+    </form>
+    <p class="small muted" style="text-align:center;margin-bottom:0">Already have an account? <a href="/login">Log in</a></p>
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,94 @@
+{{define "content"}}{{$d := .Data}}{{$u := $d.Profile}}{{$rep := $d.Reputation}}
+<div class="profile-head">
+  {{template "avatar" dict "U" $u "S" "84px"}}
+  <div>
+    <h1 style="margin:0">{{$u.Name}} {{with .Badge $u}}{{if .Text}}<span class="role-badge" style="--c:{{.Color}}">{{.Text}}</span>{{end}}{{end}}</h1>
+    <div class="muted">@{{$u.Username}} · joined {{date $u.CreatedAt}}{{if $u.Locked}} <span class="lozenge lz-red">Locked</span>{{else if $u.Suspended}} <span class="lozenge lz-red">Banned</span>{{end}}{{if and $u.Muted (.Can "moderation")}} <span class="lozenge lz-waiting">Muted</span>{{end}}</div>
+    {{if $u.Bio}}<div class="markdown" style="margin-top:.5rem">{{md $u.Bio}}</div>{{end}}
+  </div>
+  <div class="right" style="text-align:center">
+    <div class="rep">{{$rep.Score}}</div><div class="muted small">reputation</div>
+  </div>
+</div>
+<div class="with-sidebar">
+  <div class="stack">
+    <section class="gadget"><div class="g-head"><h2>Reported issues</h2><span class="muted small">{{$d.Reported.Total}}</span><a href="/issues?q=reporter:{{$u.Username}}">View all</a></div>
+      {{template "issue_table" dict "P" . "Issues" $d.Reported.Issues "Compact" true "Empty" "No reports yet."}}</section>
+    {{if $d.Comments}}<section class="gadget"><div class="g-head"><h2>Recent comments</h2></div>
+      <ul class="issue-list">{{range $d.Comments}}<li class="issue-row"><div class="main"><a class="title" href="/issues/{{.Issue.Key}}#comment-{{.Comment.ID}}">{{.Issue.Key}} · {{.Issue.Title}}</a><div class="meta">{{excerpt .Comment.Body 200}} · {{ago .Comment.CreatedAt}}</div></div></li>{{end}}</ul></section>{{end}}
+  </div>
+  <aside class="stack">
+    <div class="card card-body">
+      <h3>Contributions</h3>
+      <dl class="kv">
+        <dt>Valid reports</dt><dd>{{$rep.Reported}}</dd>
+        <dt>Fixed</dt><dd>{{$rep.Fixed}}</dd>
+        <dt>Dupes found</dt><dd>{{$rep.Duplicates}}</dd>
+        <dt>Confirmations</dt><dd>{{$rep.Confirmed}}</dd>
+        <dt>Comments</dt><dd>{{$rep.Comments}}</dd>
+      </dl>
+    </div>
+    {{if and (or (.Can "moderation") (.Can "user.manage")) (not (.IsMe $u)) (not $u.System)}}
+    <details class="side-panel" open id="moderation">
+      <summary>Account status</summary>
+      <div class="sp-body">
+        <dl class="kv">
+          <dt>Role</dt><dd>{{if .Can "user.manage"}}<form method="post" action="/users/{{$u.Username}}/admin">{{template "csrf" .}}<select name="role" data-autosubmit style="min-height:30px;padding:2px 6px">{{range $d.Roles}}<option {{if eq . $d.Role}}selected{{end}}>{{.}}</option>{{end}}</select></form>{{else}}{{$d.Role}}{{end}}</dd>
+          <dt>Access</dt><dd>{{if $u.Locked}}<span class="lozenge lz-red">Locked</span> until {{datetime $u.BannedUntil}}{{else if $u.Suspended}}<span class="lozenge lz-red">Banned</span>{{else}}<span class="lozenge lz-closed">Active</span>{{end}}</dd>
+          {{if and $u.Suspended $u.BanReason}}<dt>Reason</dt><dd>{{$u.BanReason}}</dd>{{end}}
+          <dt>Posting</dt><dd>{{if $u.Muted}}<span class="lozenge lz-waiting">Muted</span> {{if forever $u.MutedUntil}}indefinitely{{else}}until {{datetime $u.MutedUntil}}{{end}}{{else}}Allowed{{end}}</dd>
+          {{if and $u.Muted $u.MuteReason}}<dt>Mute reason</dt><dd>{{$u.MuteReason}}</dd>{{end}}
+          <dt>Visibility</dt><dd>{{if $u.ShadowBanned}}<span class="lozenge lz-waiting">Shadow-banned</span>{{else}}Normal{{end}}</dd>
+          <dt>Trusted</dt><dd>{{if $u.Trusted}}Yes{{else}}No{{end}}</dd>
+          <dt>Sessions</dt><dd>{{$d.Sessions}} active</dd>
+          <dt>Last seen</dt><dd>{{ago $u.LastSeenAt}}</dd>
+          {{if $d.Identities}}<dt>Logins</dt><dd>{{join $d.Identities ", "}}</dd>{{end}}
+        </dl>
+      </div>
+    </details>
+
+    {{if .Can "moderation"}}
+    <details class="side-panel" open>
+      <summary>Account actions</summary>
+      <div class="sp-body">
+        <form method="post" action="/users/{{$u.Username}}/moderate" class="mod-form">{{template "csrf" .}}
+          <div class="field"><label>Action</label>
+            <select name="action" id="mod-action" required>
+              <option value="kick">Kick: sign out of all sessions</option>
+              {{if $u.Muted}}<option value="unmute">Unmute</option>{{else}}<option value="mute">Mute: can read and vote, but not post</option>{{end}}
+              {{if $u.Suspended}}<option value="unban">{{if $u.Locked}}Unlock{{else}}Unban{{end}}: restore access</option>{{else}}
+              <option value="lock">Lock: suspend temporarily</option>
+              <option value="ban">Ban: suspend permanently</option>{{end}}
+              {{if $u.ShadowBanned}}<option value="unshadowban">Remove shadow-ban</option>{{else}}<option value="shadowban">Shadow-ban: hide their content from others</option>{{end}}
+              {{if $u.Trusted}}<option value="untrust">Remove trusted status</option>{{else}}<option value="trust">Trust: skip approval queue and captcha</option>{{end}}
+              <option value="revoke_tokens">Revoke all API tokens</option>
+            </select></div>
+          <div class="field" data-mod-duration><label>Duration</label>
+            <select name="duration">
+              <option value="1h">1 hour</option><option value="24h">24 hours</option><option value="3d">3 days</option>
+              <option value="7d" selected>7 days</option><option value="30d">30 days</option><option value="90d">90 days</option>
+              <option value="permanent" data-mute-only>Indefinitely</option>
+            </select></div>
+          <div class="field" data-mod-reason><label>Reason <span class="muted">(shown to the user)</span></label><input type="text" name="reason" maxlength="500" placeholder="e.g. Repeated spam"></div>
+          <div class="row"><button class="btn btn-primary right" type="submit">Apply</button></div>
+        </form>
+      </div>
+    </details>
+    {{end}}
+
+    {{if .Can "moderation"}}
+    <details class="side-panel" {{if $d.ModLog}}open{{end}}>
+      <summary>Moderation history <span class="muted" style="font-weight:400">{{len $d.ModLog}}</span></summary>
+      <div class="sp-body">
+        {{range $d.ModLog}}<div class="event" style="display:block;border-bottom:1px solid var(--border)">
+          <b>{{if .Actor}}{{.Actor.Name}}{{else}}System{{end}}</b> <span class="lozenge {{if or (eq .Action "ban") (eq .Action "lock")}}lz-red{{else if or (eq .Action "mute") (eq .Action "shadowban") (eq .Action "kick")}}lz-waiting{{end}}">{{.Action}}</span>
+          {{if .Until}}{{if forever .Until}}indefinitely{{else}}until {{datetime .Until}}{{end}}{{end}}
+          <div class="small">{{if .Reason}}{{.Reason}} · {{end}}<span title="{{datetime .CreatedAt}}">{{ago .CreatedAt}}</span></div>
+        </div>{{else}}<div class="subtle small">No moderation actions yet.</div>{{end}}
+      </div>
+    </details>
+    {{end}}
+    {{end}}
+  </aside>
+</div>
+{{end}}

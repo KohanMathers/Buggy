@@ -1,0 +1,8 @@
+{{define "content"}}
+<div style="max-width:520px;margin:64px auto;text-align:center">
+  <div class="muted" style="font-size:64px;font-weight:300;line-height:1">{{.Data.Status}}</div>
+  <h1 style="margin-top:16px">{{if eq .Data.Status 404}}We can't find that page{{else if eq .Data.Status 403}}You don't have access to this{{else}}{{.Title}}{{end}}</h1>
+  <p class="subtle">{{.Data.Message}}</p>
+  <div class="row" style="justify-content:center;margin-top:20px"><a class="btn" href="javascript:history.back()">Go back</a><a class="btn btn-primary" href="/">Go to dashboard</a></div>
+</div>
+{{end}}

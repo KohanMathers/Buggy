@@ -1,0 +1,60 @@
+{{define "content"}}{{$d := .Data}}
+<div class="page-head"><h1>Administration</h1>
+  <div class="right row">
+    <form method="post" action="/admin/automations/run">{{template "csrf" .}}<button class="btn btn-sm" type="submit">Run automations now</button></form>
+    <form method="post" action="/admin/reload">{{template "csrf" .}}<button class="btn btn-sm btn-primary" type="submit">Reload config</button></form>
+  </div>
+</div>
+<div class="stat-cards">
+  <div class="stat-card"><div class="n">{{$d.Issues}}</div><div class="l">issues</div></div>
+  <div class="stat-card"><div class="n">{{$d.UserTotal}}</div><div class="l">users</div></div>
+  <div class="stat-card"><div class="n">{{len .Cfg.Projects}}</div><div class="l">projects</div></div>
+  <div class="stat-card"><div class="n">{{$d.MemMB}} MB</div><div class="l">memory · {{$d.Goroutines}} goroutines</div></div>
+</div>
+<div class="grid grid-2" style="margin-bottom:1.25rem">
+  <div class="card card-body">
+    <h2>Configuration</h2>
+    {{if $d.ConfigError}}<div class="flash flash-error">{{template "icon" "warn"}}<div><b>Last reload failed.</b> Still running the previous config:<pre style="white-space:pre-wrap">{{$d.ConfigError}}</pre></div></div>
+    {{else}}<div class="flash flash-ok">{{template "icon" "check"}}<div>Configuration is valid and loaded.</div></div>{{end}}
+    <dl class="kv">
+      <dt>Files</dt><dd>{{range $d.ConfigFiles}}<code>{{.}}</code><br>{{end}}</dd>
+      <dt>Loaded</dt><dd>{{$d.ConfigLoad.Format "2006-01-02 15:04:05"}}</dd>
+      <dt>Database</dt><dd>{{$d.Driver}} (schema v{{$d.Schema}})</dd>
+      <dt>Storage</dt><dd>{{.Cfg.Storage.Driver}}</dd>
+      <dt>Email</dt><dd>{{if .Cfg.Notifications.Email.Enabled}}enabled ({{.Cfg.Notifications.Email.Host}}){{else}}disabled{{end}}</dd>
+      <dt>Dev mode</dt><dd>{{if .Cfg.Server.Dev}}on, templates are read from <code>{{.Cfg.Server.WebDir}}</code>{{else}}off{{end}}</dd>
+      <dt>Automations</dt><dd>{{len .Cfg.Automations}} rules, every {{.Cfg.Server.AutomationInterval.D}}</dd>
+      <dt>Webhooks</dt><dd>{{len .Cfg.Webhooks}} · git integrations: {{len .Cfg.Git}}</dd>
+    </dl>
+    <p class="small muted">Edit <code>config.yml</code> and changes are picked up automatically. Validate with <code>buggy config validate</code>.</p>
+  </div>
+  <div class="card card-body">
+    <h2>Versions</h2>
+    <p class="small muted">Versions in <code>config.yml</code> are synced on load. You can also add them here or via the API (e.g. from CI on release).</p>
+    {{range $d.Versions}}<div style="margin-bottom:.6rem"><b>{{.Key}}</b>: {{range $n, $v := .Versions}}{{if $n}}, {{end}}{{$v.Name}}{{if $v.Archived}} <span class="muted">(archived)</span>{{end}}{{else}}<span class="muted">none</span>{{end}}</div>{{end}}
+    <form method="post" action="/admin/versions" class="row">{{template "csrf" .}}
+      <select name="project" style="width:auto">{{range .Cfg.Projects}}<option>{{.Key}}</option>{{end}}</select>
+      <input type="text" name="name" placeholder="1.3.0" style="width:120px" required>
+      <label class="check"><input type="checkbox" name="released" value="1"> released</label>
+      <label class="check"><input type="checkbox" name="archived" value="1"> archived</label>
+      <button class="btn btn-sm" name="action" value="save" type="submit">Save</button>
+      <button class="btn btn-sm btn-danger" name="action" value="delete" type="submit" formnovalidate>Delete</button>
+    </form>
+  </div>
+</div>
+<div class="card">
+  <div class="card-head"><h2>Users</h2>
+    <form method="get" action="/admin" class="right row"><input type="search" name="u" value="{{.QueryGet "u"}}" placeholder="Search users"><button class="btn btn-sm" type="submit">Search</button></form></div>
+  <div class="table-wrap"><table class="table">
+    <tr><th>User</th><th>Role</th><th>Email</th><th>Joined</th><th>Last seen</th><th>Flags</th><th></th></tr>
+    {{range $d.Users}}<tr>
+      <td>{{template "user" dict "P" $ "U" .}}</td>
+      <td><form method="post" action="/users/{{.Username}}/admin" class="row" style="gap:.3rem">{{template "csrf" $}}<select name="role" data-autosubmit style="padding:.2rem .4rem;width:auto">{{$r := .Role}}{{range $d.Roles}}<option {{if eq . $r}}selected{{end}}>{{.}}</option>{{end}}</select></form></td>
+      <td class="small">{{.Email}}</td><td class="small">{{date .CreatedAt}}</td><td class="small">{{ago .LastSeenAt}}</td>
+      <td>{{if .Locked}}<span class="lozenge lz-red">Locked</span>{{else if .Suspended}}<span class="lozenge lz-red">Banned</span>{{end}}{{if .Muted}}<span class="lozenge lz-waiting">Muted</span>{{end}}{{if .ShadowBanned}}<span class="lozenge lz-waiting">Shadow-banned</span>{{end}}{{if .Trusted}}<span class="lozenge lz-closed">Trusted</span>{{end}}</td>
+      <td><a class="btn btn-sm" href="/users/{{.Username}}">Manage</a></td>
+    </tr>{{end}}
+  </table></div>
+  {{template "pagination" dict "Page" $d.UserPage "Pages" $d.UserPages "Query" .Query}}
+</div>
+{{end}}

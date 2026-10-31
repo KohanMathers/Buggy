@@ -1,0 +1,168 @@
+{{/* Shared partials. Most take a dict with "P" (the page). */}}
+
+{{define "icon"}}{{if eq . "plus"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+{{else if eq . "bell"}}<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+{{else if eq . "help"}}<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4.5"/><circle cx="12" cy="17.5" r=".6" fill="currentColor"/></svg>
+{{else if eq . "vote"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+{{else if eq . "eye"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+{{else if eq . "comment"}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+{{else if eq . "users"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+{{else if eq . "clip"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+{{else if eq . "lock"}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+{{else if eq . "bolt"}}<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
+{{else if eq . "git"}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h6M15 12h6"/></svg>
+{{else if eq . "rss"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+{{else if eq . "summary"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+{{else if eq . "list"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+{{else if eq . "ship"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.5"/></svg>
+{{else if eq . "star"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+{{else if eq . "user"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+{{else if eq . "inbox"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+{{else if eq . "filter"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></svg>
+{{else if eq . "chev"}}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+{{else if eq . "info"}}<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2zm0-8h-2V7h2z"/></svg>
+{{else if eq . "check"}}<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.5 14.5-4-4 1.4-1.4 2.6 2.6 5.6-5.6 1.4 1.4z"/></svg>
+{{else if eq . "warn"}}<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22zm1 15h-2v-2h2zm0-4h-2V9h2z"/></svg>
+{{else if eq . "bug"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="7" width="10" height="13" rx="5"/><path d="M9 7a3 3 0 0 1 6 0M3 13h4M17 13h4M4 7l3 2M20 7l-3 2M4 19l3-2M20 19l-3-2M12 11v9"/></svg>
+{{else if eq . "edit"}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+{{else if eq . "link"}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+{{else if eq . "file"}}<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+{{end}}{{end}}
+
+{{define "logo"}}<span class="logo">{{with .Cfg.Instance.Logo}}<img src="{{.}}" alt="" onerror="this.remove()">{{end}}</span>{{end}}
+
+{{define "avatar"}}{{$def := defaultAvatar}}{{if and .U .U.AvatarURL}}<img class="avatar" style="--s:{{cssval .S}}" src="{{.U.AvatarURL}}" alt="" title="{{.U.Name}}" loading="lazy" referrerpolicy="no-referrer" data-fallback="{{$def}}" onerror="if(this.src!==this.dataset.fallback){this.src=this.dataset.fallback}">{{else}}<img class="avatar" style="--s:{{cssval .S}}" src="{{$def}}" alt="" {{if .U}}title="{{.U.Name}}"{{end}} loading="lazy" referrerpolicy="no-referrer">{{end}}{{end}}
+
+{{define "user"}}{{if .U}}<a class="user-link" href="{{userURL .U}}">{{if not .NoAvatar}}{{template "avatar" dict "U" .U "S" "24px"}}{{end}}<span>{{.U.Name}}</span></a>{{with .P.Badge .U}}{{if .Text}} <span class="role-badge" style="--c:{{.Color}}">{{.Text}}</span>{{end}}{{end}}{{else}}<span class="user-link">{{template "avatar" dict "S" "24px"}}<span class="muted">Unassigned</span></span>{{end}}{{end}}
+
+{{define "project_avatar"}}<span class="project-avatar{{with .Class}} {{.}}{{end}}" style="--c:{{color (or .Project.Color "#0c66e4")}}" title="{{.Project.Name}}">{{with .Project.Icon}}<img src="{{.}}" alt="" onerror="this.remove()">{{end}}</span>{{end}}
+
+{{define "state"}}{{$st := .P.State .Project .State}}<span class="lozenge lz-{{$st.Category}}" title="{{$st.Label}}">{{$st.Label}}</span>{{if .Resolution}}{{$r := .P.Resolution .Project .Resolution}} <span class="resolution">{{$r.Label}}</span>{{end}}{{end}}
+
+{{define "labels"}}{{range .Labels}}<a class="label-chip" style="--c:{{$.P.LabelColor .}}" href="/issues?q=label:{{.}}">{{.}}</a> {{end}}{{end}}
+
+{{define "opt"}}{{$o := .F.Option .V}}<span class="opt">{{if and $o $o.Color}}<span class="opt-dot" style="--c:{{color $o.Color}}"></span>{{end}}{{.F.OptionLabel .V}}</span>{{end}}
+
+{{define "issue_row"}}{{$i := .I}}{{$pk := $i.ProjectKey}}
+<li class="issue-row" data-key="{{$i.Key}}">
+  {{if .Select}}<input class="sel" type="checkbox" name="keys" value="{{$i.Key}}" form="bulk-form" aria-label="Select {{$i.Key}}">{{end}}
+  <a class="key" href="/issues/{{$i.Key}}">{{$i.Key}}</a>
+  <div class="main ellipsis"><a class="title" href="/issues/{{$i.Key}}" title="{{$i.Title}}">{{if $i.Private}}<span class="muted">{{template "icon" "lock"}}</span> {{end}}{{$i.Title}}</a></div>
+  <div class="stats">
+    {{if $i.Votes}}<span class="stat" title="Votes">{{template "icon" "vote"}}{{$i.Votes}}</span>{{end}}
+    {{template "state" dict "P" .P "Project" $pk "State" $i.State}}
+    {{if $i.Assignee}}{{template "avatar" dict "U" $i.Assignee "S" "20px"}}{{end}}
+  </div>
+</li>{{end}}
+
+{{define "issue_list"}}{{if .Issues}}<ul class="issue-list">{{range .Issues}}{{template "issue_row" dict "P" $.P "I" . "Select" $.Select}}{{end}}</ul>{{else}}<div class="empty">{{or .Empty "No issues here."}}</div>{{end}}{{end}}
+
+{{define "sorth"}}<a href="/issues?q={{(withSort .Q .Sort)}}" class="{{if sortActive .Q .Sort}}sorted{{end}}">{{.Label}}{{if sortActive .Q .Sort}} {{if sortAsc .Q}}↑{{else}}↓{{end}}{{end}}</a>{{end}}
+
+{{define "issue_table"}}{{$P := .P}}{{$q := .Query}}{{if .Issues}}
+<div class="table-wrap"><table class="issue-table">
+  <thead><tr>
+    {{if .Select}}<th class="cb"><input type="checkbox" id="select-all" aria-label="Select all"></th>{{end}}
+    <th>{{if $q}}{{template "sorth" dict "Q" $q "Sort" "key" "Label" "Key"}}{{else}}Key{{end}}</th>
+    <th>Summary</th>
+    {{if not .Compact}}{{range $P.AllListFields}}<th>{{.Label}}</th>{{end}}{{end}}
+    <th>Status</th>
+    {{if not .Compact}}<th>Resolution</th><th>Assignee</th><th>Reporter</th>{{end}}
+    <th class="num">{{if $q}}{{template "sorth" dict "Q" $q "Sort" "votes" "Label" "Votes"}}{{else}}Votes{{end}}</th>
+    {{if not .Compact}}<th>{{if $q}}{{template "sorth" dict "Q" $q "Sort" "created" "Label" "Created"}}{{else}}Created{{end}}</th>{{end}}
+    <th>{{if $q}}{{template "sorth" dict "Q" $q "Sort" "updated" "Label" "Updated"}}{{else}}Updated{{end}}</th>
+  </tr></thead>
+  <tbody>
+  {{range .Issues}}{{$i := .}}{{$pk := .ProjectKey}}
+  <tr class="issue-row" data-key="{{.Key}}">
+    {{if $.Select}}<td class="cb"><input class="sel" type="checkbox" name="keys" value="{{.Key}}" form="bulk-form" aria-label="Select {{.Key}}"></td>{{end}}
+    <td class="nowrap"><a class="key" href="/issues/{{.Key}}">{{.Key}}</a></td>
+    <td class="summary"><a class="title" href="/issues/{{.Key}}">{{if .Private}}<span class="muted" title="Private">{{template "icon" "lock"}}</span> {{end}}{{.Title}}</a>
+      {{if .Fingerprint}} <span class="muted" title="Crash signature {{.Fingerprint}}">{{template "icon" "bolt"}}</span>{{end}}
+      {{if eq .Moderation "pending"}} <span class="lozenge lz-waiting">Pending approval</span>{{end}}
+      {{if and (not $.Compact) .Labels}}<span class="small"> {{template "labels" dict "P" $P "Labels" .Labels}}</span>{{end}}</td>
+    {{if not $.Compact}}{{range $P.AllListFields}}<td class="nowrap">{{$f := .}}{{range $n, $v := fieldVal $i .ID}}{{if $n}}, {{end}}{{template "opt" dict "F" $f "V" $v}}{{end}}</td>{{end}}{{end}}
+    <td class="nowrap">{{template "state" dict "P" $P "Project" $pk "State" .State}}</td>
+    {{if not $.Compact}}
+    <td class="nowrap subtle">{{if .Resolution}}{{($P.Resolution $pk .Resolution).Label}}{{else}}Unresolved{{end}}</td>
+    <td class="nowrap">{{if .Assignee}}{{template "user" dict "P" $P "U" .Assignee}}{{else}}<span class="muted">Unassigned</span>{{end}}</td>
+    <td class="nowrap">{{if .Reporter}}<a class="user-link" href="{{userURL .Reporter}}">{{template "avatar" dict "U" .Reporter "S" "20px"}}<span>{{.Reporter.Name}}</span></a>{{end}}</td>
+    {{end}}
+    <td class="num">{{.Votes}}</td>
+    {{if not $.Compact}}<td class="date" title="{{datetime .CreatedAt}}">{{jdate .CreatedAt}}</td>{{end}}
+    <td class="date" title="{{datetime .UpdatedAt}} ({{ago .UpdatedAt}})">{{jdate .UpdatedAt}}</td>
+  </tr>
+  {{end}}
+  </tbody>
+</table></div>
+{{else}}<div class="empty">{{or .Empty "No issues match."}}</div>{{end}}{{end}}
+
+{{define "field_input"}}{{$f := .F}}{{$vals := .Values}}{{$name := printf "f_%s" $f.ID}}
+{{if eq $f.Type "textarea"}}<textarea name="{{$name}}" id="{{$name}}" class="mono" placeholder="{{or .Placeholder $f.Placeholder}}" data-parse {{if .Required}}data-required{{end}}>{{if $vals}}{{index $vals 0}}{{else}}{{.Template}}{{end}}</textarea>
+{{else if eq $f.Type "select"}}<select name="{{$name}}" id="{{$name}}" {{if .Required}}data-required{{end}}><option value="">None</option>{{range $f.Options}}<option value="{{.Value}}" {{if contains $vals .Value}}selected{{end}}>{{.Label}}</option>{{end}}</select>
+{{else if eq $f.Type "multiselect"}}<div class="options" id="{{$name}}" {{if .Required}}data-required{{end}}>{{range $f.Options}}<label><input type="checkbox" name="{{$name}}" value="{{.Value}}" {{if contains $vals .Value}}checked{{end}}> {{.Label}}</label>{{end}}</div>
+{{else if eq $f.Type "bool"}}<input type="hidden" name="{{$name}}_present" value="1"><label class="check"><input type="checkbox" name="{{$name}}" value="true" {{if contains $vals "true"}}checked{{end}}> {{$f.Label}}</label>
+{{else if eq $f.Type "number"}}<input type="number" step="any" name="{{$name}}" id="{{$name}}" value="{{if $vals}}{{index $vals 0}}{{end}}" placeholder="{{or .Placeholder $f.Placeholder}}" {{if .Required}}data-required{{end}}>
+{{else if eq $f.Type "date"}}<input type="date" name="{{$name}}" id="{{$name}}" value="{{if $vals}}{{index $vals 0}}{{end}}" {{if .Required}}data-required{{end}}>
+{{else if eq $f.Type "url"}}<input type="url" name="{{$name}}" id="{{$name}}" value="{{if $vals}}{{index $vals 0}}{{end}}" placeholder="{{or .Placeholder $f.Placeholder "https://"}}" {{if .Required}}data-required{{end}}>
+{{else if eq $f.Type "version"}}<select name="{{$name}}" id="{{$name}}" {{if .Required}}data-required{{end}}><option value="">None</option>{{range .Versions}}<option {{if contains $vals .Name}}selected{{end}}>{{.Name}}</option>{{end}}</select>
+{{else}}<input type="text" name="{{$name}}" id="{{$name}}" value="{{if $vals}}{{index $vals 0}}{{end}}" placeholder="{{or .Placeholder $f.Placeholder}}" {{if .Required}}data-required{{end}} {{if eq $f.Type "user"}}data-user-input{{end}}>
+{{end}}{{end}}
+
+{{define "pagination"}}{{if gt .Pages 1}}<nav class="pagination">
+{{if gt .Page 1}}<a class="btn btn-sm" href="?{{qs .Query "page" (printf "%d" (sub .Page 1))}}">Previous</a>{{end}}
+<span class="small subtle">Page {{.Page}} of {{.Pages}}</span>
+{{if lt .Page .Pages}}<a class="btn btn-sm" href="?{{qs .Query "page" (printf "%d" (add .Page 1))}}">Next</a>{{end}}
+</nav>{{end}}{{end}}
+
+{{define "csrf"}}<input type="hidden" name="_csrf" value="{{.CSRF}}">{{end}}
+
+{{define "captcha_script"}}{{$c := .Cfg.Spam.Captcha}}{{if eq $c.Provider "turnstile"}}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{{else if eq $c.Provider "hcaptcha"}}<script src="https://js.hcaptcha.com/1/api.js" async defer></script>{{else if eq $c.Provider "recaptcha"}}<script src="https://www.google.com/recaptcha/api.js" async defer></script>{{end}}{{end}}
+
+{{define "captcha"}}{{$c := .Cfg.Spam.Captcha}}<div class="field">{{if eq $c.Provider "turnstile"}}<div class="cf-turnstile" data-sitekey="{{$c.SiteKey}}"></div>{{else if eq $c.Provider "hcaptcha"}}<div class="h-captcha" data-sitekey="{{$c.SiteKey}}"></div>{{else if eq $c.Provider "recaptcha"}}<div class="g-recaptcha" data-sitekey="{{$c.SiteKey}}"></div>{{end}}</div>{{end}}
+
+{{define "editor"}}<div class="editor" data-editor>
+  <div class="editor-tabs"><button type="button" class="active" data-tab="write">Write</button><button type="button" data-tab="preview">Preview</button><span class="right small muted">Markdown · @mention · KEY-123</span></div>
+  <textarea name="{{.Name}}" id="{{or .ID .Name}}" placeholder="{{.Placeholder}}" {{if .Required}}data-required{{end}} {{if .Parse}}data-parse{{end}} data-mentions>{{.Value}}</textarea>
+  <div class="preview markdown hidden"></div>
+</div>{{end}}
+
+{{define "project_sidebar"}}{{$P := .P}}{{$p := .Project}}{{$a := .Active}}
+<aside class="sidebar">
+  <div class="sb-project">{{template "project_avatar" dict "Project" $p}}<div><div class="name">{{$p.Name}}</div><div class="kind">Bug tracker · {{$p.Key}}</div></div></div>
+  <a class="sb-link {{if eq $a "summary"}}active{{end}}" href="/projects/{{$p.Key}}">{{template "icon" "summary"}} Summary</a>
+  <a class="sb-link {{if eq $a "issues"}}active{{end}}" href="/issues?q={{(printf "project:%s is:open" $p.Key)}}">{{template "icon" "list"}} Issues</a>
+  <a class="sb-link {{if eq $a "releases"}}active{{end}}" href="/projects/{{$p.Key}}/releases">{{template "icon" "ship"}} Releases</a>
+  <a class="sb-link" href="/issues?q={{(printf "project:%s has:fingerprint is:open sort:votes" $p.Key)}}">{{template "icon" "bolt"}} Crashes</a>
+  <a class="sb-link" href="/issues?q={{(printf "project:%s is:open sort:votes" $p.Key)}}">{{template "icon" "star"}} Most voted</a>
+  {{if $P.User}}
+  <div class="sb-group">Your work</div>
+  <a class="sb-link" href="/issues?q={{(printf "project:%s reporter:me" $p.Key)}}">{{template "icon" "user"}} Reported by me</a>
+  <a class="sb-link" href="/issues?q={{(printf "project:%s watching:me is:open" $p.Key)}}">{{template "icon" "eye"}} Watching</a>
+  {{end}}
+  {{if $P.Can "triage" $p.Key}}
+  <div class="sb-group">Triage</div>
+  <a class="sb-link {{if eq $a "triage"}}active{{end}}" href="/triage">{{template "icon" "inbox"}} Triage queue</a>
+  <a class="sb-link" href="/issues?q={{(printf "project:%s is:open is:unassigned sort:created-asc" $p.Key)}}">{{template "icon" "filter"}} Unassigned</a>
+  {{end}}
+  {{if $P.Can "issue.create" $p.Key}}<div style="padding:16px 8px"><a class="btn btn-primary btn-block" href="/projects/{{$p.Key}}/new">{{template "icon" "plus"}} Report a bug</a></div>{{end}}
+</aside>{{end}}
+
+{{define "filters_sidebar"}}{{$P := .P}}{{$q := .Query}}
+<aside class="sidebar">
+  <div class="sb-group" style="padding-top:0">Filters</div>
+  {{if $P.User}}
+  <a class="sb-link {{if eq $q "assignee:me is:open"}}active{{end}}" href="/issues?q=assignee:me+is:open">{{template "icon" "user"}} Assigned to me</a>
+  <a class="sb-link {{if eq $q "reporter:me"}}active{{end}}" href="/issues?q=reporter:me">{{template "icon" "bug"}} Reported by me</a>
+  <a class="sb-link {{if eq $q "watching:me is:open"}}active{{end}}" href="/issues?q=watching:me+is:open">{{template "icon" "eye"}} Watching</a>
+  <a class="sb-link {{if eq $q "voted:me"}}active{{end}}" href="/issues?q=voted:me">{{template "icon" "vote"}} Voted</a>
+  {{end}}
+  <a class="sb-link {{if eq $q "is:open"}}active{{end}}" href="/issues?q=is:open">{{template "icon" "list"}} Open issues</a>
+  <a class="sb-link {{if eq $q ""}}active{{end}}" href="/issues?q=">{{template "icon" "filter"}} All issues</a>
+  <a class="sb-link {{if eq $q "sort:created"}}active{{end}}" href="/issues?q=sort:created">{{template "icon" "plus"}} Created recently</a>
+  <a class="sb-link {{if eq $q "is:closed sort:updated"}}active{{end}}" href="/issues?q=is:closed+sort:updated">{{template "icon" "check"}} Resolved recently</a>
+  {{if .Saved}}<div class="sb-group">Saved filters</div>
+  {{range .Saved}}<a class="sb-link {{if eq $q .Query}}active{{end}}" href="/issues?q={{.Query}}" title="{{.Query}}{{if .Public}} (shared by {{.Owner}}){{end}}">{{template "icon" "star"}} <span class="ellipsis">{{.Name}}</span></a>{{end}}{{end}}
+  {{if $P.Projects}}<div class="sb-group">Projects</div>
+  {{range $P.Projects}}<a class="sb-link" href="/projects/{{.Key}}">{{template "project_avatar" dict "Project" . "Class" "sm"}} <span class="ellipsis">{{.Name}}</span></a>{{end}}{{end}}
+</aside>{{end}}

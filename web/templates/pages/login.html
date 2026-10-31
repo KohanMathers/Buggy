@@ -1,0 +1,21 @@
+{{define "content"}}
+<div class="auth-wrap">
+  <div class="auth-logo">{{template "logo" .}} {{$t := or .Cfg.Instance.Title .Cfg.Instance.Name}}{{if ne $t "-"}}{{$t}}{{end}}</div>
+  <div class="card">
+    <h1>{{.T "login.title" "Log in to continue"}}</h1>
+    {{with .Err "_"}}<div class="flash flash-error">{{.}}</div>{{end}}
+    {{if .Cfg.Auth.Providers}}<div class="oauth-buttons">
+      {{range .Cfg.Auth.Providers}}<a class="btn btn-block" href="/auth/{{.ID}}?next={{($.FormValue "next")}}">Continue with {{or .Name .ID}}</a>{{end}}
+    </div>{{if .Cfg.Auth.Local.Enabled}}<div class="divider">or</div>{{end}}{{end}}
+    {{if .Cfg.Auth.Local.Enabled}}
+    <form method="post" action="/login">
+      {{template "csrf" .}}<input type="hidden" name="next" value="{{.FormValue "next"}}">
+      <div class="field"><label for="login">Username or email</label><input type="text" id="login" name="login" value="{{.FormValue "login"}}" autocomplete="username" required autofocus></div>
+      <div class="field"><label for="password" style="display:flex">Password <a class="right" href="/forgot" style="font-weight:400">Forgot password?</a></label><input type="password" id="password" name="password" autocomplete="current-password" required></div>
+      <button class="btn btn-primary btn-block" type="submit">Log in</button>
+    </form>
+    {{if eq .Cfg.Auth.Local.Registration "open"}}<p class="small muted" style="text-align:center;margin-bottom:0">New here? <a href="/register?next={{(.FormValue "next")}}">Create an account</a></p>{{end}}
+    {{end}}
+  </div>
+</div>
+{{end}}

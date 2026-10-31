@@ -1,0 +1,62 @@
+{{define "sidebar"}}{{template "project_sidebar" dict "P" . "Project" .Data.Project "Active" ""}}{{end}}
+{{define "content"}}{{$d := .Data}}{{$pk := $d.Project.Key}}
+<div class="breadcrumbs"><a href="/?all=1">Projects</a><span class="sep">/</span><a href="/projects/{{$pk}}">{{$d.Project.Name}}</a></div>
+<div class="page-head"><h1>{{.T "new.title" "Create issue"}}</h1></div>
+<div class="with-sidebar">
+<form method="post" action="/projects/{{$pk}}/new" enctype="multipart/form-data" class="card card-body form-card" data-wizard data-project="{{$pk}}" data-dupes="{{$d.Form.CheckDuplicates}}" novalidate>
+  {{template "csrf" .}}
+  {{if gt (len $d.Steps) 1}}<div class="steps">{{range $n, $s := $d.Steps}}<div class="s {{if eq $n 0}}active{{end}}"><span class="n">{{add $n 1}}</span>{{or $s.Title (printf "Step %d" (add $n 1))}}</div>{{end}}</div>{{end}}
+  {{if $d.Form.Intro}}<div class="panel markdown" style="margin-bottom:16px"><span class="panel-icon">{{template "icon" "info"}}</span><div>{{md $d.Form.Intro}}</div></div>{{end}}
+  {{with .Err "_"}}<div class="flash flash-error">{{template "icon" "warn"}}<div>{{.}}</div></div>{{end}}
+  <div id="parse-result" class="parse-result hidden"></div>
+
+  {{range $n, $s := $d.Steps}}
+  <div class="wizard-step" data-step="{{$n}}">
+    {{if and (gt (len $d.Steps) 1) $s.Title}}<h2>{{$s.Title}}</h2>{{end}}
+    {{if $s.Description}}<div class="muted markdown" style="margin-bottom:1rem">{{md $s.Description}}</div>{{end}}
+    {{range $s.Fields}}{{$key := .FF.Field}}
+    <div class="field {{if $.Err $key}}has-error{{end}}" {{if .ShowIf}}data-show-if="{{.ShowIf}}"{{end}}>
+      {{if ne .Builtin "private"}}<label for="{{if .Builtin}}{{.Builtin}}{{else}}f_{{$key}}{{end}}">{{.Label}}{{if .Required}}<span class="req">*</span>{{end}}</label>{{end}}
+      {{if eq .Builtin "title"}}
+        <input type="text" name="title" id="title" value="{{$.FormValue "title"}}" placeholder="{{or .FF.Placeholder "Short, specific summary of the problem"}}" maxlength="250" data-required autocomplete="off" autofocus>
+        <div id="similar" class="similar hidden" style="margin-top:.6rem"></div>
+      {{else if eq .Builtin "description"}}
+        {{template "editor" dict "Name" "description" "Value" (or ($.FormValue "description") .FF.Template) "Placeholder" .FF.Placeholder "Required" .Required}}
+      {{else if eq .Builtin "affects_versions"}}
+        <select name="affects_versions" id="affects_versions" {{if .Required}}data-required{{end}}><option value="">None</option>{{range $d.Versions}}<option {{if contains ($.FormValues "affects_versions") .Name}}selected{{end}}>{{.Name}}</option>{{end}}</select>
+      {{else if eq .Builtin "attachments"}}
+        <div class="dropzone"><input type="file" name="attachments" multiple><div class="files small"></div><div class="small">Drag files here. Logs and crash reports are parsed automatically (max {{bytes $.Cfg.Storage.MaxSize}} each).</div></div>
+      {{else if eq .Builtin "labels"}}
+        <div class="options">{{range $d.Labels}}{{if not .Private}}<label title="{{.Description}}"><input type="checkbox" name="labels" value="{{.Name}}" {{if contains ($.FormValues "labels") .Name}}checked{{end}}> {{.Name}}</label>{{end}}{{end}}</div>
+      {{else if eq .Builtin "private"}}
+        <label class="check"><input type="checkbox" name="private" value="1" {{if $.FormValue "private"}}checked{{end}}> {{template "icon" "lock"}} This is a security vulnerability, restrict it to staff</label>
+      {{else if .Field}}
+        {{template "field_input" dict "F" .Field "Values" ($.FormValues (printf "f_%s" $key)) "Required" .Required "Placeholder" .FF.Placeholder "Template" .FF.Template "Versions" $d.Versions}}
+      {{end}}
+      {{if .Help}}<div class="help">{{.Help}}</div>{{end}}
+      {{with $.Err $key}}<div class="error">{{.}}</div>{{end}}
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Captcha "issue"}}{{template "captcha" .}}{{end}}
+  <div class="row" style="margin-top:1rem">
+    {{if gt (len $d.Steps) 1}}<button class="btn hidden" type="button" data-prev>Back</button>
+    <button class="btn btn-primary right" type="button" data-next>Next</button>{{end}}
+    <button class="btn btn-primary right {{if gt (len $d.Steps) 1}}hidden{{end}}" type="submit" data-submit>{{or $d.Form.SubmitLabel "Create"}}</button>
+  </div>
+  <noscript><style>.wizard-step.hidden,[data-submit].hidden{display:block!important}</style></noscript>
+</form>
+<aside class="side-panel"><div class="sp-head">Tips for a good report</div><div class="sp-body small">
+  <ul style="padding-left:18px;margin:0 0 8px">
+    <li><b>One problem per report.</b></li>
+    <li><b>Search first</b>: if it already exists, vote or click <i>I have this too</i>.</li>
+    <li>Give exact <b>steps to reproduce</b>, what you expected, and what happened.</li>
+    <li>Attach <b>logs or crash reports</b> and we detect versions and crash signatures automatically.</li>
+    <li>Mention other issues with their key (e.g. <code>{{$pk}}-12</code>).</li>
+  </ul>
+  <p class="muted">Use <a href="/help#markdown">Markdown</a> for formatting.</p>
+</div></aside>
+</div>
+{{end}}

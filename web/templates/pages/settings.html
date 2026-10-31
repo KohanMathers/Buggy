@@ -1,0 +1,55 @@
+{{define "content"}}{{$d := .Data}}{{$u := .User}}{{$posted := gt (len .Form) 0}}
+<div class="page-head"><h1>Account settings</h1></div>
+<div class="grid grid-2">
+  <form method="post" action="/settings" class="card card-body">
+    {{template "csrf" .}}
+    <h2>Profile</h2>
+    <div class="field"><label>Username</label><input type="text" value="{{$u.Username}}" disabled></div>
+    <div class="field {{if .Err "display_name"}}has-error{{end}}"><label>Display name</label><input type="text" name="display_name" value="{{if $posted}}{{.FormValue "display_name"}}{{else}}{{$u.DisplayName}}{{end}}" maxlength="64">{{with .Err "display_name"}}<div class="error">{{.}}</div>{{end}}</div>
+    <div class="field {{if .Err "avatar_url"}}has-error{{end}}"><label>Profile picture URL</label>
+      <div class="row" style="flex-wrap:nowrap">{{template "avatar" dict "U" $u "S" "36px"}}<input type="url" name="avatar_url" value="{{if $posted}}{{.FormValue "avatar_url"}}{{else}}{{$u.AvatarURL}}{{end}}" placeholder="https://… (leave empty for the default picture)"></div>
+      {{with .Err "avatar_url"}}<div class="error">{{.}}</div>{{end}}</div>
+    <div class="field {{if .Err "email"}}has-error{{end}}"><label>Email</label><input type="email" name="email" value="{{if $posted}}{{.FormValue "email"}}{{else}}{{$u.Email}}{{end}}">{{with .Err "email"}}<div class="error">{{.}}</div>{{end}}</div>
+    <div class="field"><label>Bio</label><textarea name="bio" style="min-height:80px">{{if $posted}}{{.FormValue "bio"}}{{else}}{{$u.Bio}}{{end}}</textarea></div>
+    {{if .Cfg.Locales}}<div class="field"><label>Language</label><select name="locale"><option value="">Automatic</option>{{range $k, $v := .Cfg.Locales}}<option {{if eq $k $u.Locale}}selected{{end}}>{{$k}}</option>{{end}}</select></div>{{end}}
+    <label class="check"><input type="checkbox" name="email_notifications" value="1" {{if $u.EmailNotifications}}checked{{end}}> Email me about issues I watch and mentions</label>
+    {{if .Cfg.Auth.Local.Enabled}}
+    <h2 style="margin-top:1.5rem">Password</h2>
+    {{if $u.PasswordHash}}<div class="field {{if .Err "current_password"}}has-error{{end}}"><label>Current password</label><input type="password" name="current_password" autocomplete="current-password">{{with .Err "current_password"}}<div class="error">{{.}}</div>{{end}}</div>{{end}}
+    <div class="field {{if .Err "new_password"}}has-error{{end}}"><label>New password</label><input type="password" name="new_password" autocomplete="new-password">{{with .Err "new_password"}}<div class="error">{{.}}</div>{{end}}</div>
+    {{end}}
+    <button class="btn btn-primary" type="submit">Save</button>
+  </form>
+  <div class="stack">
+    <div class="card card-body" id="recovery">
+      <h2>Recovery codes</h2>
+      <p class="small muted">Recovery codes let you reset your password if you forget it. Each code works once.</p>
+      {{if $d.RecoveryTotal}}
+        <p>{{if eq $d.RecoveryUnused 0}}<span class="lozenge lz-red">None left</span>{{else if le $d.RecoveryUnused 2}}<span class="lozenge lz-waiting">{{$d.RecoveryUnused}} of {{$d.RecoveryTotal}} left</span>{{else}}<span class="lozenge lz-closed">{{$d.RecoveryUnused}} of {{$d.RecoveryTotal}} left</span>{{end}}</p>
+      {{else}}<p><span class="lozenge lz-waiting">Not set up</span> You don't have any recovery codes yet.</p>{{end}}
+      <form method="post" action="/settings/recovery-codes" {{if $d.RecoveryTotal}}data-confirm="Generate new recovery codes? Your old codes will stop working."{{end}}>{{template "csrf" .}}
+        <button class="btn {{if not $d.RecoveryUnused}}btn-primary{{end}}" type="submit">{{if $d.RecoveryTotal}}Generate new codes{{else}}Generate recovery codes{{end}}</button>
+      </form>
+    </div>
+    {{if .Can "api.token"}}
+    <div class="card card-body">
+      <h2>API tokens</h2>
+      <p class="small muted">Use with <code>Authorization: Bearer &lt;token&gt;</code>. See <a href="/api/v1">/api/v1</a>.</p>
+      {{if $d.NewToken}}<div class="flash flash-ok">{{template "icon" "check"}}<div>New token. Copy it now, it won't be shown again:<br><code style="word-break:break-all">{{$d.NewToken}}</code></div></div>{{end}}
+      <form method="post" action="/settings/tokens" class="row">{{template "csrf" .}}<input type="text" name="name" placeholder="Token name, e.g. CI" style="flex:1"><button class="btn" type="submit">Create</button></form>
+      {{if $d.Tokens}}<table class="table" style="margin-top:.8rem"><tr><th>Name</th><th>Prefix</th><th>Last used</th><th></th></tr>
+        {{range $d.Tokens}}<tr><td>{{.Name}}</td><td><code>{{.Prefix}}…</code></td><td>{{ago .LastUsedAt}}</td><td><form method="post" action="/settings/tokens/{{.ID}}/delete" data-confirm="Revoke this token?">{{template "csrf" $}}<button class="btn btn-sm btn-danger" type="submit">Revoke</button></form></td></tr>{{end}}</table>{{end}}
+    </div>{{end}}
+    {{if .Cfg.Auth.Providers}}
+    <div class="card card-body">
+      <h2>Linked accounts</h2>
+      {{range .Cfg.Auth.Providers}}<div class="row" style="margin-bottom:.4rem"><b>{{or .Name .ID}}</b>{{if contains $d.Identities .ID}}<span class="lozenge lz-closed right">Linked</span>{{else}}<a class="btn btn-sm right" href="/auth/{{.ID}}?link=1">Link</a>{{end}}</div>{{end}}
+    </div>{{end}}
+    <div class="card card-body">
+      <h2>Appearance</h2>
+      <button class="btn" type="button" data-theme-toggle>Toggle light / dark / auto</button>
+      <p class="small muted">Press <kbd>?</kbd> anywhere for keyboard shortcuts.</p>
+    </div>
+  </div>
+</div>
+{{end}}

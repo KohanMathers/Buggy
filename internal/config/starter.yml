@@ -1,0 +1,187 @@
+# Buggy configuration
+# ------------------
+# Every setting has a built-in default (see `buggy config defaults`), so you only need to keep what you change. Values like ${ENV_VAR} or ${ENV_VAR:-fallback} are expanded from the environment. Extra files in ./config.d/*.yml are merged on top of this one (lists are appended). Run `buggy config validate` after editing.
+
+instance:
+  name: Buggy
+  description: Report bugs, vote on what matters, and see what's fixed.
+  url: ${BUGGY_URL:-http://localhost:8080}
+  # title: Acme Bug Tracker     # text next to the logo (default: name; "-" hides it)
+  # logo: /static/logo.png      # image URL or path; unset/broken -> plain colour square
+  # default_avatar: https://upload.wikimedia.org/wikipedia/commons/a/ac/Default_pfp.jpg
+  theme:
+    primary: "#0c66e4"
+    mode: auto            # auto | light | dark
+    # font: Inter, system-ui, sans-serif
+    # font_url: https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap
+    # colors: { topbar: "#1d2125", topbar_text: "#ffffff" }   # light mode overrides
+    # dark_colors: { background: "#101214" }                  # dark mode overrides
+  # announcement: "**Heads up:** 2.0 is out, please re-test open reports."
+  footer_links:
+    - { label: Source, url: "https://github.com/kohanmathers/buggy" } # If you're nice you won't remove this one :)
+
+server:
+  listen: ${BUGGY_LISTEN:-:8080}
+  data_dir: ${BUGGY_DATA:-./data}
+
+database:
+  driver: ${BUGGY_DATABASE_DRIVER:-sqlite}   # sqlite | postgres
+  dsn: ${BUGGY_DATABASE_DSN:-}               # e.g. postgres://buggy:buggy@localhost/buggy?sslmode=disable
+
+auth:
+  local:
+    registration: open    # open | closed
+  admins: []              # usernames that are always admins
+  providers: []
+  #  - id: github
+  #    type: github
+  #    client_id: ${GITHUB_CLIENT_ID}
+  #    client_secret: ${GITHUB_CLIENT_SECRET}
+  #  - id: discord
+  #    type: discord
+  #    client_id: ${DISCORD_CLIENT_ID}
+  #    client_secret: ${DISCORD_CLIENT_SECRET}
+
+projects:
+  - key: APP
+    name: My App
+    description: Bugs in the main application.
+    # icon: https://example.com/app-icon.png   # image; unset/broken -> square in `color`
+    color: "#0c66e4"
+    form: bug_report
+    versions:
+      - { name: "1.0", released: true }
+      - { name: "1.1", released: true }
+      - "1.2"
+
+fields:
+  - id: platform
+    label: Platform
+    type: select
+    environment: true     # shown in "affects" stats and asked on "I have this too"
+    show_in_list: true
+    options:
+      - { value: windows, label: Windows }
+      - { value: macos, label: macOS }
+      - { value: linux, label: Linux }
+      - { value: android, label: Android }
+      - { value: ios, label: iOS }
+  - id: category
+    label: Category
+    type: select
+    options: [crash, gameplay, ui, performance, audio, other]
+  - id: crash_log
+    label: Crash log
+    type: textarea
+    help: Paste the full crash log or attach the file below.
+  - id: priority
+    label: Priority
+    type: select
+    edit_permission: triage   # only helpers+ can set it
+    show_in_list: true
+    options:
+      - { value: low, label: Low, color: "#6b7280" }
+      - { value: normal, label: Normal, color: "#3b82f6" }
+      - { value: high, label: High, color: "#f59e0b" }
+      - { value: critical, label: Critical, color: "#ef4444" }
+  - id: runtime_version
+    label: Runtime version
+    type: text
+    environment: true
+
+labels:
+  - { name: crash, color: "#ef4444", description: The app crashes }
+  - { name: regression, color: "#f59e0b", description: Used to work in an earlier version }
+  - { name: security, color: "#7c3aed", private: true, description: Hidden from the public }
+  - { name: needs-retest, color: "#0ea5e9", restricted: true }
+
+forms:
+  bug_report:
+    intro: |
+      Thanks for helping! **Search first**: similar reports appear while you type the summary.
+    steps:
+      - title: What happened?
+        fields:
+          - field: title
+            placeholder: e.g. Game crashes when opening the map in fullscreen
+          - category
+          - field: description
+            template: |
+              **Steps to reproduce**
+              1.
+              2.
+
+              **Expected result**
+
+              **Actual result**
+      - title: Your environment
+        fields:
+          - affects_versions
+          - platform
+          - runtime_version
+      - title: Logs & files
+        description: Logs are parsed automatically, so versions, OS and crash signatures are filled in for you.
+        fields:
+          - field: crash_log
+            required: true
+            show_if: { field: category, equals: crash }
+          - attachments
+
+parsers:
+  - id: java-stacktrace
+    name: Java stack trace
+    match:
+      content: '(?m)^\s+at [\w.$<>]+\('
+    labels: [crash]
+    extract:
+      - { field: runtime_version, regex: 'Java Version: (\S+)' }
+    fingerprint:
+      exception: '(?m)^(?:Caused by: )?([\w.$]+(?:Exception|Error))'
+      frames: '(?m)^\s+at ([\w.$<>]+)\('
+      count: 5
+      ignore: ['^java\.lang\.reflect', '^sun\.reflect', '^jdk\.internal']
+  - id: python-traceback
+    name: Python traceback
+    match:
+      content: 'Traceback \(most recent call last\):'
+    labels: [crash]
+    fingerprint:
+      exception: '(?m)^(\w+(?:Error|Exception))\b'
+      frames: '(?m)^\s+File "[^"]*", line \d+, in (\S+)'
+  - id: os-detect
+    name: Operating system
+    match: {}
+    extract:
+      - field: platform
+        regex: '(?i)\b(windows|macos|mac os x|linux|android|ios)\b'
+        map: { "mac os x": macos, Windows: windows, Linux: linux }
+
+automations:
+  - id: close-unanswered
+    name: Close reports with no reply
+    on: [schedule]
+    query: "status:awaiting_response"
+    idle: 14d
+    do:
+      transition: resolved
+      resolution: incomplete
+      comment: "Closing because there was no reply for 14 days. If you still have this problem, please open a new report with the requested information."
+  - id: request-retest
+    name: Ask for a re-test on stale reports
+    on: [schedule]
+    query: "is:open -label:needs-retest"
+    idle: 180d
+    do:
+      add_labels: [needs-retest]
+      comment: "This report hasn't been updated in six months. Can you still reproduce it in the latest version? Use **Still affects me** to confirm."
+
+canned_responses:
+  - id: need-logs
+    name: Ask for logs
+    body: "Thanks for the report! Could you attach your log file? See the help page for where to find it."
+    transition: request_info
+  - id: support
+    name: Support request
+    body: "This tracker is for bugs only. For help with setup please use the community support channels."
+    transition: triage_resolve
+    resolution: invalid

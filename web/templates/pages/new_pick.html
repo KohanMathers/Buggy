@@ -1,0 +1,8 @@
+{{define "content"}}
+<div class="page-head"><div><h1>{{.T "new.pick" "Create issue"}}</h1><div class="desc">Choose the project this report is about.</div></div></div>
+<div class="grid grid-3">
+  {{range .Data}}
+  <a class="project-card" href="/projects/{{.Key}}/new">{{template "project_avatar" dict "Project" .}}<div><h3>{{.Name}}</h3><div class="small muted">{{.Key}}</div>{{if .Description}}<div class="small subtle" style="margin-top:6px">{{.Description}}</div>{{end}}</div></a>
+  {{else}}<div class="empty">You can't report bugs in any project.</div>{{end}}
+</div>
+{{end}}

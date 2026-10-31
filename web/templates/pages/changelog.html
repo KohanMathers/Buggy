@@ -1,0 +1,13 @@
+{{define "sidebar"}}{{template "project_sidebar" dict "P" . "Project" .Data.Project "Active" "releases"}}{{end}}
+{{define "content"}}{{$d := .Data}}
+<div class="breadcrumbs"><a href="/?all=1">Projects</a><span class="sep">/</span><a href="/projects/{{$d.Project.Key}}">{{$d.Project.Name}}</a><span class="sep">/</span><a href="/projects/{{$d.Project.Key}}/releases">Releases</a></div>
+<div class="page-head">
+  <div>
+    <h1>{{$d.Version.Name}} {{if $d.Version.Released}}<span class="lozenge lz-closed">Released</span>{{else}}<span class="lozenge">Unreleased</span>{{end}}</h1>
+    <div class="desc">{{if $d.Version.ReleaseDate}}Release date {{$d.Version.ReleaseDate}} · {{end}}{{len $d.Issues}} fixed issues</div>
+  </div>
+  <div class="actions"><a class="btn" href="/issues?q=project:{{$d.Project.Key}}+fixed:%22{{$d.Version.Name}}%22">View in issue search</a></div>
+</div>
+<h2>Release notes</h2>
+{{template "issue_table" dict "P" . "Issues" $d.Issues "Compact" true "Empty" "No issues are marked as fixed in this version yet."}}
+{{end}}

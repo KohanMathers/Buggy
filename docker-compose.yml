@@ -1,0 +1,31 @@
+# Quick start:  docker compose up -d   →  http://localhost:8080
+# The first account you register becomes the admin.
+# Edit ./config/config.yml (created on first start); changes hot-reload.
+services:
+  buggy:
+    build: .
+    image: buggy:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      BUGGY_URL: http://localhost:8080
+      # Uncomment to use Postgres instead of the built-in SQLite:
+      # BUGGY_DATABASE_DRIVER: postgres
+      # BUGGY_DATABASE_DSN: postgres://buggy:buggy@db/buggy?sslmode=disable
+    volumes:
+      - ./config:/config
+      - buggy-data:/data
+  # db:
+  #   image: postgres:17-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: buggy
+  #     POSTGRES_PASSWORD: buggy
+  #     POSTGRES_DB: buggy
+  #   volumes:
+  #     - pg-data:/var/lib/postgresql/data
+
+volumes:
+  buggy-data:
+  # pg-data:

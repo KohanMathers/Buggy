@@ -1,0 +1,31 @@
+{{define "content"}}{{$q := .Data}}
+<div class="page-head"><div><h1>Triage</h1><div class="desc">Approve new content and work through reports that haven't been reviewed yet.</div></div></div>
+{{if or $q.Issues $q.Comments}}
+<div class="grid grid-2" style="margin-bottom:24px">
+  <section class="gadget">
+    <div class="g-head"><h2>Reports awaiting approval</h2><span class="lozenge lz-waiting">{{len $q.Issues}}</span></div>
+    {{if $q.Issues}}<ul class="issue-list">{{range $q.Issues}}<li class="issue-row"><div class="main"><a class="key" href="/issues/{{.Key}}">{{.Key}}</a> <a class="title" href="/issues/{{.Key}}">{{.Title}}</a>
+      <div class="meta">by {{if .Reporter}}{{.Reporter.Username}}{{end}} · {{ago .CreatedAt}}</div><div class="small subtle">{{excerpt .Description 200}}</div></div>
+      <div class="row" style="flex-wrap:nowrap"><form method="post" action="/moderate/issue/{{.ID}}">{{template "csrf" $}}<input type="hidden" name="action" value="approve"><button class="btn btn-sm btn-success" type="submit">Approve</button></form>
+      <form method="post" action="/moderate/issue/{{.ID}}">{{template "csrf" $}}<input type="hidden" name="action" value="reject"><button class="btn btn-sm btn-danger" type="submit">Reject</button></form></div></li>{{end}}</ul>{{else}}<div class="empty">Nothing waiting.</div>{{end}}
+  </section>
+  <section class="gadget">
+    <div class="g-head"><h2>Comments awaiting approval</h2><span class="lozenge lz-waiting">{{len $q.Comments}}</span></div>
+    {{if $q.Comments}}<ul class="issue-list">{{range $q.Comments}}<li class="issue-row"><div class="main"><a class="key" href="/issues/{{.IssueKey}}#comment-{{.ID}}">{{.IssueKey}}</a>
+      <div class="meta">by {{if .Author}}{{.Author.Username}}{{end}} · {{ago .CreatedAt}}</div><div class="small subtle">{{excerpt .Body 200}}</div></div>
+      <div class="row" style="flex-wrap:nowrap"><form method="post" action="/moderate/comment/{{.ID}}">{{template "csrf" $}}<input type="hidden" name="action" value="approve"><button class="btn btn-sm btn-success" type="submit">Approve</button></form>
+      <form method="post" action="/moderate/comment/{{.ID}}">{{template "csrf" $}}<input type="hidden" name="action" value="reject"><button class="btn btn-sm btn-danger" type="submit">Reject</button></form></div></li>{{end}}</ul>{{else}}<div class="empty">Nothing waiting.</div>{{end}}
+  </section>
+</div>
+{{end}}
+<div class="navigator-head"><h2 style="margin:0">Needs triage</h2><span>{{len $q.Triage}} oldest untriaged reports</span><a class="right" href="/issues?q=is:open+sort:created-asc">Open in issue search</a></div>
+{{template "issue_table" dict "P" . "Issues" $q.Triage "Select" (gt (len $q.Triage) 0) "Empty" "Every report has been triaged."}}
+<form id="bulk-form" method="post" action="/issues/bulk" class="bulk-bar hidden" data-confirm="Apply to the selected issues?">
+  {{template "csrf" .}}<b><span data-selected-count>0</span> selected</b>
+  <input type="text" name="duplicate_of" placeholder="Duplicate of KEY-1" size="14">
+  <input type="text" name="add_labels" placeholder="Add labels" size="10">
+  {{if .Cfg.Canned}}<select name="canned"><option value="">Canned response…</option>{{range .Cfg.Canned}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>{{end}}
+  <input type="text" name="comment" placeholder="Comment" style="flex:1;min-width:160px">
+  <button class="btn btn-primary" type="submit">Apply</button>
+</form>
+{{end}}

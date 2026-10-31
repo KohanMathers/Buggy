@@ -1,0 +1,21 @@
+{{define "content"}}
+<div class="page-head"><h1>Notifications</h1>
+  <div class="actions">
+    <a class="btn {{if .QueryGet "unread"}}on{{end}}" href="/notifications?unread=1">Unread only</a>
+    <a class="btn {{if not (.QueryGet "unread")}}on{{end}}" href="/notifications">All</a>
+    <form method="post" action="/notifications/read">{{template "csrf" .}}<button class="btn" type="submit">Mark all as read</button></form>
+  </div>
+</div>
+<div class="card" style="max-width:900px">
+  {{if .Data}}<ul class="issue-list">{{range .Data}}
+    <li class="issue-row" {{if not .Read}}style="background:var(--selected)"{{end}}>
+      {{template "avatar" dict "U" .Actor "S" "32px"}}
+      <div class="main">
+        <a class="title" href="{{.URL}}">{{.Title}}</a>
+        {{if .Body}}<div class="meta">{{.Body}}</div>{{end}}
+        <div class="meta">{{ago .CreatedAt}}</div>
+      </div>
+      {{if not .Read}}<form method="post" action="/notifications/read">{{template "csrf" $}}<input type="hidden" name="id" value="{{.ID}}"><button class="btn btn-sm btn-subtle" type="submit">Mark as read</button></form>{{end}}
+    </li>{{end}}</ul>{{else}}<div class="empty">You have no notifications.</div>{{end}}
+</div>
+{{end}}

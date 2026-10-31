@@ -1,0 +1,6 @@
+/buggy
+/dist/
+/data/
+/config.yml
+/config.d/
+*.tar.gz

@@ -1,0 +1,19 @@
+{{define "content"}}
+<div class="auth-wrap">
+  <div class="auth-logo">{{template "logo" .}} {{$t := or .Cfg.Instance.Title .Cfg.Instance.Name}}{{if ne $t "-"}}{{$t}}{{end}}</div>
+  <div class="card">
+    <h1>{{.T "forgot.title" "Reset your password"}}</h1>
+    <p class="small subtle">Enter your username and one of the recovery codes you saved when you created your account. Each code works once.</p>
+    {{with .Err "_"}}<div class="flash flash-error">{{template "icon" "warn"}}<div>{{.}}</div></div>{{end}}
+    <form method="post" action="/forgot" autocomplete="off">
+      {{template "csrf" .}}
+      <div class="field"><label for="login">Username or email</label><input type="text" id="login" name="login" value="{{.FormValue "login"}}" autocomplete="username" required autofocus></div>
+      <div class="field"><label for="code">Recovery code</label><input type="text" id="code" name="code" placeholder="abcd-efgh-jkmn-pqrs" spellcheck="false" autocapitalize="off" required style="font-family:var(--mono)"></div>
+      <div class="field {{if .Err "password"}}has-error{{end}}"><label for="password">New password</label><input type="password" id="password" name="password" autocomplete="new-password" minlength="{{.Cfg.Auth.Local.MinPassword}}" required>{{with .Err "password"}}<div class="error">{{.}}</div>{{end}}</div>
+      <div class="field {{if .Err "password2"}}has-error{{end}}"><label for="password2">Confirm new password</label><input type="password" id="password2" name="password2" autocomplete="new-password" required>{{with .Err "password2"}}<div class="error">{{.}}</div>{{end}}</div>
+      <button class="btn btn-primary btn-block" type="submit">Reset password</button>
+    </form>
+    <p class="small muted" style="text-align:center;margin:16px 0 0">No recovery codes? Ask an administrator to reset your password.<br><a href="/login">Back to log in</a></p>
+  </div>
+</div>
+{{end}}

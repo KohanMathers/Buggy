@@ -1,0 +1,54 @@
+{{define "content"}}{{$d := .Data}}
+<div class="page-head">
+  <div>
+    <h1>{{if .User}}{{.T "home.dashboard" "Dashboard"}}{{else}}{{.Cfg.Instance.Name}}{{end}}</h1>
+    <div class="desc">{{.Cfg.Instance.Description}}</div>
+  </div>
+  <div class="actions">
+    {{if .User}}<a class="btn btn-primary" href="/new">{{.T "nav.report" "Report a bug"}}</a>{{else}}<a class="btn btn-primary" href="/login?next=/new">{{.T "home.login_report" "Log in to report a bug"}}</a>{{end}}
+  </div>
+</div>
+
+{{if $d.Projects}}
+<h2>{{.T "home.projects" "Projects"}}</h2>
+<div class="grid grid-3" style="margin-bottom:28px">
+  {{range $d.Projects}}
+  <a class="project-card" href="/projects/{{.Key}}">
+    {{template "project_avatar" dict "Project" .}}
+    <div style="min-width:0">
+      <h3>{{.Name}}</h3>
+      <div class="small muted">{{.Key}} · {{.Open}} open · {{.Total}} total</div>
+      {{if .Description}}<div class="small subtle" style="margin-top:6px">{{.Description}}</div>{{end}}
+    </div>
+  </a>
+  {{end}}
+</div>
+{{else}}
+<div class="panel" style="margin-bottom:24px"><span class="panel-icon">{{template "icon" "info"}}</span><div>
+  <b>No projects yet.</b> Add one to <code>config.yml</code> and the server will pick it up automatically:
+  <pre style="margin-top:8px"><code>projects:
+  - key: APP
+    name: My App</code></pre></div></div>
+{{end}}
+
+<div class="grid grid-2">
+  {{if .User}}
+  <section class="gadget">
+    <div class="g-head"><h2>{{.T "home.mine" "Reported by me"}}</h2><a href="/issues?q=reporter:me">View all</a></div>
+    {{template "issue_table" dict "P" . "Issues" $d.Mine "Compact" true "Empty" "You have no open reports."}}
+  </section>
+  <section class="gadget">
+    <div class="g-head"><h2>{{.T "home.watching" "Watched issues"}}</h2><a href="/issues?q=watching:me">View all</a></div>
+    {{template "issue_table" dict "P" . "Issues" $d.Watching "Compact" true "Empty" "Vote, comment on or watch an issue to follow it here."}}
+  </section>
+  {{end}}
+  <section class="gadget">
+    <div class="g-head"><h2>{{.T "home.trending" "Hot issues (last 7 days)"}}</h2><a href="/issues?q=is:open+sort:votes">Most voted</a></div>
+    {{template "issue_table" dict "P" . "Issues" $d.Trending "Compact" true "Empty" "No recent activity."}}
+  </section>
+  <section class="gadget">
+    <div class="g-head"><h2>{{.T "home.recent" "Created recently"}}</h2><a href="/issues?q=sort:created">View all</a></div>
+    {{template "issue_table" dict "P" . "Issues" $d.Recent "Compact" true}}
+  </section>
+</div>
+{{end}}

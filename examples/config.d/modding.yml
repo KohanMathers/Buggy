@@ -1,0 +1,83 @@
+# Optional "modding" pack for moddable games (Minecraft-style crash reports, Fabric/Forge/NeoForge/Quilt loaders, mod lists).
+#
+# Enable it by copying this file next to your config.yml:
+#   mkdir -p config.d && cp examples/config.d/modding.yml config.d/
+# Files in config.d/ are merged into config.yml (lists are appended), and the server hot-reloads them.
+
+fields:
+  - id: game_version
+    label: Game version
+    type: text
+    environment: true
+    show_in_list: true
+  - id: mod_loader
+    label: Mod loader
+    type: select
+    environment: true
+    show_in_list: true
+    options:
+      - { value: vanilla, label: Vanilla (no mods), color: "#10b981" }
+      - { value: fabric, label: Fabric, color: "#dbb98a" }
+      - { value: forge, label: Forge, color: "#3e4c6b" }
+      - { value: neoforge, label: NeoForge, color: "#e67e22" }
+      - { value: quilt, label: Quilt, color: "#8e44ad" }
+  - id: mods
+    label: Installed mods
+    type: text
+    help: Detected automatically from crash reports.
+
+labels:
+  - { name: modded, color: "#e67e22", description: Reported with mods installed }
+
+parsers:
+  - id: mc-crash-report
+    name: Minecraft-style crash report
+    match:
+      content: '---- Minecraft Crash Report ----'
+    labels: [crash]
+    extract:
+      - { field: game_version, regex: 'Minecraft Version: (\S+)' }
+      - { field: runtime_version, regex: 'Java Version: (\S+)' }
+      - field: platform
+        regex: 'Operating System: (\w+)'
+        map: { "Mac": macos }
+    fingerprint:
+      exception: '(?m)^(?:Caused by: )?([\w.$]+(?:Exception|Error))'
+      frames: '(?m)^\s+at ([\w.$<>/]+)\('
+      count: 6
+      ignore: ['^java\.', '^jdk\.', '^sun\.', '^com\.mojang\.logging']
+  - id: mod-loader
+    name: Mod loader detection
+    match:
+      content: '(?i)\b(fabric|forge|neoforge|quilt)(?:\s+loader|loader|\s+mods)?\b'
+    labels: [modded]
+    extract:
+      - field: mod_loader
+        regex: '(?i)\b(neoforge|fabric|forge|quilt)\b'
+      - field: mods
+        regex: '(?m)^\t\t([a-z0-9_\-]+): '
+        all: true
+  - id: vanilla-launcher-log
+    name: Vanilla launcher log
+    match:
+      filename: ["latest.log", "launcher_log.txt"]
+      content: 'Setting user: '
+    extract:
+      - { field: game_version, regex: 'Minecraft (\d+\.\d+(?:\.\d+)?)' }
+
+automations:
+  - id: label-modded-crashes
+    name: Tag crashes from modded clients for the mod helpers
+    on: [issue.created]
+    query: "label:crash mod_loader:fabric,forge,neoforge,quilt"
+    do:
+      add_labels: [modded]
+      comment: |
+        Thanks! This crash happened with a mod loader installed. Please check whether it still happens **without mods**. If it doesn't, report it to the mod author instead.
+
+canned_responses:
+  - id: mod-issue
+    name: Caused by a mod
+    body: "This crash is caused by a third-party mod, not the game itself. Please report it to the mod's author."
+    transition: triage_resolve
+    resolution: invalid

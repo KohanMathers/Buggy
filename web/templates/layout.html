@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="{{.Locale}}" data-theme="{{.Cfg.Instance.Theme.Mode}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if .Title}}{{.Title}} - {{end}}{{.Cfg.Instance.Name}}</title>
+<meta name="description" content="{{.Cfg.Instance.Description}}">
+<meta name="csrf-token" content="{{.CSRF}}">
+{{if .NoIndex}}<meta name="robots" content="noindex">{{end}}
+{{if .Cfg.Instance.Favicon}}<link rel="icon" href="{{.Cfg.Instance.Favicon}}">{{else if .Cfg.Instance.Logo}}<link rel="icon" href="{{.Cfg.Instance.Logo}}">{{else}}<link rel="icon" href="/favicon.svg" type="image/svg+xml">{{end}}
+<link rel="stylesheet" href="{{asset "static/app.css"}}">
+{{themeCSS}}
+{{if or .Cfg.Instance.CustomCSS .Cfg.Instance.CustomCSSFile}}<link rel="stylesheet" href="/custom.css">{{end}}
+<link rel="alternate" type="application/atom+xml" title="Recently updated" href="/feeds/issues.atom?q=is:open">
+<script>(function(){var t=localStorage.getItem('buggy-theme');if(t)document.documentElement.dataset.theme=t;})()</script>
+{{if .Cfg.Spam.Captcha.Provider}}{{template "captcha_script" .}}{{end}}
+{{block "head" .}}{{end}}
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/" title="{{.Cfg.Instance.Name}}">{{template "logo" .}}{{$title := or .Cfg.Instance.Title .Cfg.Instance.Name}}{{if ne $title "-"}}<span>{{$title}}</span>{{end}}</a>
+    <nav class="nav">
+      {{if .User}}<a href="/" {{if eq .Path "/"}}class="active"{{end}}>{{.T "nav.dashboard" "Dashboard"}}</a>{{end}}
+      <details class="menu">
+        <summary>{{.T "nav.projects" "Projects"}} {{template "icon" "chev"}}</summary>
+        <div class="menu-list">
+          <div class="group">Projects</div>
+          {{range .Projects}}<a href="/projects/{{.Key}}">{{template "project_avatar" dict "Project" . "Class" "sm"}} {{.Name}} <span class="muted small">({{.Key}})</span></a>{{end}}
+          <div class="sep"></div>
+          <a href="/?all=1">View all projects</a>
+        </div>
+      </details>
+      <details class="menu">
+        <summary>{{.T "nav.issues" "Issues"}} {{template "icon" "chev"}}</summary>
+        <div class="menu-list">
+          {{if .User}}<a href="/issues?q=assignee:me+is:open">Assigned to me</a>
+          <a href="/issues?q=reporter:me">Reported by me</a>
+          <a href="/issues?q=watching:me+is:open">Watching</a>
+          <div class="sep"></div>{{end}}
+          <a href="/issues?q=is:open">Open issues</a>
+          <a href="/issues?q=is:open+sort:votes">Most voted</a>
+          <a href="/issues?q=sort:created">Created recently</a>
+          <div class="sep"></div>
+          <a href="/issues">Search issues</a>
+        </div>
+      </details>
+      {{if or (.Can "triage") (.Can "moderation")}}<a href="/triage" {{if eq .Path "/triage"}}class="active"{{end}}>{{.T "nav.triage" "Triage"}}</a>{{end}}
+      {{if .User}}<a class="btn-create" href="/new">{{.T "nav.create" "Create"}}</a>{{end}}
+    </nav>
+    <form class="search-box" action="/issues" method="get" role="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" name="q" id="global-search" placeholder="{{.T "nav.search" "Search"}}" value="{{if eq .Path "/issues"}}{{.QueryGet "q"}}{{end}}" autocomplete="off">
+    </form>
+    <div class="top-actions">
+      {{if .User}}
+        <a class="icon-btn" href="/notifications" title="Notifications" id="bell">{{template "icon" "bell"}}{{if .Unread}}<span class="count">{{.Unread}}</span>{{end}}</a>
+        <a class="icon-btn" href="/help" title="Help">{{template "icon" "help"}}</a>
+        <details class="menu">
+          <summary title="Your profile and settings">{{template "avatar" dict "U" .User "S" "28px"}}</summary>
+          <div class="menu-list">
+            <div class="who">{{template "avatar" dict "U" .User "S" "36px"}}<div><b>{{.User.Name}}</b><div class="small muted">@{{.User.Username}}</div></div></div>
+            <div class="sep"></div>
+            <a href="{{userURL .User}}">{{.T "menu.profile" "Profile"}}</a>
+            <a href="/settings">{{.T "menu.settings" "Account settings"}}</a>
+            <a href="/notifications">{{.T "menu.notifications" "Notifications"}}</a>
+            {{if or (.Can "admin") (.Can "user.manage")}}<div class="sep"></div><a href="/admin">{{.T "menu.admin" "Administration"}}</a>{{end}}
+            <div class="sep"></div>
+            <button type="button" data-theme-toggle>{{.T "menu.theme" "Theme: light / dark / auto"}}</button>
+            <a href="/help#shortcuts">{{.T "menu.shortcuts" "Keyboard shortcuts"}}</a>
+            <div class="sep"></div>
+            <form method="post" action="/logout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button type="submit">{{.T "menu.logout" "Log out"}}</button></form>
+          </div>
+        </details>
+      {{else}}
+        <a class="icon-btn" href="/help" title="Help">{{template "icon" "help"}}</a>
+        <a class="btn btn-subtle" href="/login?next={{.Path}}">{{.T "nav.login" "Log in"}}</a>
+        {{if and .Cfg.Auth.Local.Enabled (eq .Cfg.Auth.Local.Registration "open")}}<a class="btn btn-primary" href="/register">{{.T "nav.register" "Sign up"}}</a>{{end}}
+      {{end}}
+    </div>
+  </div>
+</header>
+{{if .Cfg.Instance.Announcement}}<div class="announcement"><div class="inner"><span style="color:var(--primary)">{{template "icon" "info"}}</span><div class="markdown">{{md .Cfg.Instance.Announcement}}</div></div></div>{{end}}
+<div class="app-body">
+  {{block "sidebar" .}}{{end}}
+  <main>
+    {{if .Flash}}<div class="flash flash-{{.FlashKind}}" role="status">{{if eq .FlashKind "ok"}}{{template "icon" "check"}}{{else}}{{template "icon" "warn"}}{{end}}<div>{{.Flash}}</div></div>{{end}}
+    {{template "content" .}}
+  </main>
+</div>
+<footer>
+  <span>{{if .Cfg.Instance.FooterText}}{{md .Cfg.Instance.FooterText}}{{else}}{{.Cfg.Instance.Name}}{{end}}</span>
+  {{range .Cfg.Instance.FooterLinks}}<a href="{{.URL}}">{{.Label}}</a>{{end}}
+  <span class="right">Powered by <a href="https://github.com/kohanmathers/buggy" rel="noopener">Buggy</a> {{.Version}} · <a href="/help">Help</a> · <a href="/api/v1">REST API</a></span>
+</footer>
+<script src="{{asset "static/app.js"}}" defer></script>
+{{block "scripts" .}}{{end}}
+</body>
+</html>

@@ -1,0 +1,315 @@
+{{define "sidebar"}}{{template "project_sidebar" dict "P" . "Project" .Data.Project "Active" "issues"}}{{end}}
+{{define "content"}}{{$d := .Data}}{{$i := $d.Issue}}{{$pk := $i.ProjectKey}}{{$st := .State $pk $i.State}}
+{{$canEdit := or (.Can "issue.edit" $pk) (and (.IsMe $i.Reporter) (.Can "issue.edit_own" $pk))}}
+{{$staff := or (.Can "triage" $pk) (.Can "issue.transition" $pk)}}
+<div class="breadcrumbs">
+  <a href="/?all=1">Projects</a><span class="sep">/</span><a href="/projects/{{$pk}}">{{$d.Project.Name}}</a><span class="sep">/</span><a href="/issues/{{$i.Key}}">{{$i.Key}}</a>
+  {{if $i.Private}}<span class="lozenge lz-red" title="Only the reporter and staff can see this issue">{{template "icon" "lock"}}&nbsp;Private</span>{{end}}
+  {{if ne $i.Moderation "approved"}}<span class="lozenge lz-waiting">{{$i.Moderation}}, awaiting moderator approval</span>{{end}}
+</div>
+<h1 class="issue-title">{{$i.Title}}</h1>
+
+<div class="action-bar">
+  {{if or $canEdit $staff}}<a class="btn" href="/issues/{{$i.Key}}/edit" data-edit>{{template "icon" "edit"}} Edit</a>{{end}}
+  {{if and .User (.Can "comment.create" $pk)}}<a class="btn" href="#reply" onclick="setTimeout(function(){document.getElementById('comment-body').focus()},50)">{{template "icon" "comment"}} Comment</a>{{end}}
+  {{if .Can "issue.assign" $pk}}
+  <details class="popover"><summary class="btn">{{template "icon" "user"}} Assign</summary>
+    <form class="pop" method="post" action="/issues/{{$i.Key}}/triage">{{template "csrf" .}}
+      <div class="field"><label>Assignee</label><input type="text" name="assignee" value="{{if $i.Assignee}}{{$i.Assignee.Username}}{{end}}" placeholder="username, me, or empty to unassign"></div>
+      <div class="row"><button class="btn btn-subtle" type="submit" name="assignee" value="me">Assign to me</button><button class="btn btn-primary right" type="submit">Assign</button></div>
+    </form></details>{{end}}
+  {{if or (.Can "issue.duplicate" $pk) (.Can "canned.use" $pk) (.Can "issue.link" $pk) (.Can "issue.delete" $pk)}}
+  <details class="popover"><summary class="btn">More {{template "icon" "chev"}}</summary>
+    <div class="dropdown-menu">
+      {{if and (.Can "issue.duplicate" $pk) (not $i.DuplicateOf)}}<button type="button" data-open="#dup-pop">Mark as duplicate…</button>{{end}}
+      {{if .Can "issue.link" $pk}}<button type="button" data-open="#link-pop">Link issue…</button>{{end}}
+      {{if and (.Can "canned.use" $pk) $d.Canned}}<button type="button" data-open="#canned-pop">Canned response…</button>{{end}}
+      <a href="/feeds/issues/{{$i.Key}}.atom">Atom feed</a>
+      <a href="/api/v1/issues/{{$i.Key}}?expand=comments,history,links,confirmations">View as JSON</a>
+      {{if .Can "issue.delete" $pk}}<form method="post" action="/issues/{{$i.Key}}/delete" data-confirm="Permanently delete {{$i.Key}}? This can't be undone.">{{template "csrf" .}}<button class="btn-danger" type="submit" style="color:var(--danger)">Delete</button></form>{{end}}
+    </div></details>{{end}}
+  {{if $d.Transitions}}<span class="divider-v"></span>
+  {{range $d.Transitions}}
+    <details class="popover">
+      <summary class="btn {{if eq .Style "primary"}}btn-primary{{else if eq .Style "success"}}btn-success{{end}}">{{.Label}}</summary>
+      <form class="pop" method="post" action="/issues/{{$i.Key}}/transition" data-transition-form>{{template "csrf" $}}
+        <input type="hidden" name="transition" value="{{.ID}}">
+        <h3 style="margin-bottom:12px">{{.Label}} <span class="muted">→</span> {{template "state" dict "P" $ "Project" $pk "State" .To}}</h3>
+        {{if .ResolutionOptions}}<div class="field"><label>Resolution<span class="req">*</span></label><select name="resolution" required>{{if gt (len .ResolutionOptions) 1}}<option value="">Select…</option>{{end}}{{range .ResolutionOptions}}{{if ne .ID ($.Workflow $pk).DuplicateResolution}}<option value="{{.ID}}">{{.Label}}</option>{{end}}{{end}}</select>
+          <div class="help">Use More → Mark as duplicate for duplicates, so votes are moved.</div></div>{{end}}
+        <div class="field"><label>Comment{{if .RequireComment}}<span class="req">*</span>{{end}}</label><textarea name="comment" style="min-height:80px" {{if .RequireComment}}data-required{{end}}></textarea></div>
+        <div class="row"><button class="btn btn-primary right" type="submit">{{.Label}}</button></div>
+      </form>
+    </details>
+  {{end}}{{end}}
+</div>
+
+{{/* Hidden popovers opened from the More menu */}}
+{{if and (.Can "issue.duplicate" $pk) (not $i.DuplicateOf)}}
+<details class="popover" id="dup-pop" style="display:block;height:0"><summary class="hidden">Mark duplicate</summary>
+  <form class="pop" method="post" action="/issues/{{$i.Key}}/duplicate">{{template "csrf" .}}
+    <h3>Mark {{$i.Key}} as a duplicate</h3>
+    <p class="small subtle">Resolves this issue and moves its votes, watchers and the reporter's environment to the original.</p>
+    <div class="field"><label>Original issue</label><input type="text" name="of" placeholder="{{$pk}}-123 or URL" required></div>
+    {{if $d.Similar}}<div class="small" style="margin:-8px 0 12px">Suggestions: {{range $d.Similar}}<a href="#" onclick="this.closest('form').of.value='{{.Issue.Key}}';return false" title="{{.Issue.Title}}">{{.Issue.Key}}</a> {{end}}</div>{{end}}
+    <div class="field"><label>Comment (optional)</label><textarea name="comment" style="min-height:60px"></textarea></div>
+    <div class="row"><button class="btn btn-primary right" type="submit">Resolve as duplicate</button></div>
+  </form></details>{{end}}
+{{if .Can "issue.link" $pk}}
+<details class="popover" id="link-pop" style="display:block;height:0"><summary class="hidden">Link</summary>
+  <form class="pop" method="post" action="/issues/{{$i.Key}}/link">{{template "csrf" .}}
+    <h3>Link issue</h3>
+    <div class="field"><label>This issue</label><select name="kind">{{range $d.LinkKinds}}<option value="{{.}}">{{linkLabel . true}}</option>{{end}}</select></div>
+    <div class="field"><label>Issue</label><input type="text" name="other" placeholder="{{$pk}}-123" required></div>
+    <div class="row"><button class="btn btn-primary right" type="submit">Link</button></div>
+  </form></details>{{end}}
+{{if and (.Can "canned.use" $pk) $d.Canned}}
+<details class="popover" id="canned-pop" style="display:block;height:0"><summary class="hidden">Canned</summary>
+  <form class="pop" method="post" action="/issues/{{$i.Key}}/canned">{{template "csrf" .}}
+    <h3>Canned response</h3>
+    <div class="field"><select name="canned" required>{{range $d.Canned}}<option value="{{.ID}}">{{.Name}}{{if .Transition}} (+ {{.Transition}}){{end}}</option>{{end}}</select></div>
+    <div class="field"><textarea name="extra" placeholder="Additional text (optional)" style="min-height:60px"></textarea></div>
+    <div class="row"><button class="btn btn-primary right" type="submit">Send</button></div>
+  </form></details>{{end}}
+
+{{if $d.Original}}<div class="panel p-closed" style="margin-bottom:24px"><span class="panel-icon">{{template "icon" "info"}}</span><div>This issue is a <b>duplicate</b> of <a href="/issues/{{$d.Original.Key}}"><b>{{$d.Original.Key}}</b> {{$d.Original.Title}}</a>. Votes and watchers were moved there, so please follow that issue instead.</div></div>
+{{else if $d.Explain}}<div class="panel p-{{$st.Category}} markdown" style="margin-bottom:24px"><span class="panel-icon">{{if eq $st.Category "closed"}}{{template "icon" "check"}}{{else if eq $st.Category "waiting"}}{{template "icon" "warn"}}{{else}}{{template "icon" "info"}}{{end}}</span><div>{{md $d.Explain}}</div></div>{{end}}
+
+<div class="with-sidebar">
+<div>
+  <details class="module" open>
+    <summary>Details</summary>
+    <div class="field-grid">
+      <dl class="kv">
+        <dt>Status</dt><dd>{{template "state" dict "P" . "Project" $pk "State" $i.State}}</dd>
+        <dt>Resolution</dt><dd>{{if $i.Resolution}}{{(.Resolution $pk $i.Resolution).Label}}{{else}}<span class="subtle">Unresolved</span>{{end}}</dd>
+        <dt>Affects version/s</dt><dd>{{range $n, $v := $i.Affects}}{{if $n}}, {{end}}<a href="/issues?q=project:{{$pk}}+version:%22{{$v.Name}}%22">{{$v.Name}}</a>{{else}}<span class="subtle">None</span>{{end}}</dd>
+        <dt>Fix version/s</dt><dd>{{range $n, $v := $i.FixVersions}}{{if $n}}, {{end}}<a href="/projects/{{$pk}}/changelog/{{pathEscape $v.Name}}">{{$v.Name}}</a>{{else}}<span class="subtle">None</span>{{end}}</dd>
+        <dt>Labels</dt><dd>{{template "labels" dict "P" . "Labels" $i.Labels}}{{if not $i.Labels}}<span class="subtle">None</span>{{end}}
+          {{if or (.Can "issue.label" $pk) $canEdit}}<details class="popover"><summary class="btn btn-sm btn-subtle" title="Edit labels">{{template "icon" "edit"}}</summary>
+            <div class="pop">
+              <form method="post" action="/issues/{{$i.Key}}/triage" class="row" style="flex-wrap:nowrap">{{template "csrf" .}}<input type="text" name="add_label" placeholder="Add label" list="label-list" style="flex:1"><button class="btn btn-primary" type="submit">Add</button></form>
+              <datalist id="label-list">{{range .Cfg.Labels}}<option value="{{.Name}}">{{end}}</datalist>
+              {{if $i.Labels}}<div class="row" style="margin-top:8px">{{range $i.Labels}}<form method="post" action="/issues/{{$i.Key}}/triage" class="inline-form">{{template "csrf" $}}<input type="hidden" name="remove_label" value="{{.}}"><button class="btn btn-sm" title="Remove {{.}}">{{.}} ✕</button></form>{{end}}</div>{{end}}
+            </div></details>{{end}}</dd>
+        {{if $i.Fingerprint}}<dt>Crash signature</dt><dd><a href="/issues?q=fingerprint:{{$i.Fingerprint}}"><code>{{$i.Fingerprint}}</code></a></dd>{{end}}
+      </dl>
+      <dl class="kv">
+        {{range $d.Fields}}{{if ne .Type "textarea"}}{{if or (not .Private) ($.Can "issue.view_private" $pk)}}{{$vals := fieldVal $i .ID}}{{$f := .}}
+        <dt>{{.Label}}</dt><dd>{{if and .EditPermission ($.Can .EditPermission $pk) (eq .Type "select")}}<form method="post" action="/issues/{{$i.Key}}/triage" style="width:100%">{{template "csrf" $}}<select name="f_{{.ID}}" data-autosubmit style="min-height:30px;padding:2px 6px">{{if not $vals}}<option value="">None</option>{{end}}{{range .Options}}<option value="{{.Value}}" {{if contains $vals .Value}}selected{{end}}>{{.Label}}</option>{{end}}</select></form>{{else}}{{range $n, $v := $vals}}{{if $n}}, {{end}}{{if eq $f.Type "url"}}<a href="{{$v}}" rel="nofollow noopener" target="_blank">{{$v}}</a>{{else if eq $f.Type "user"}}<a href="/users/{{pathEscape $v}}">@{{$v}}</a>{{else}}{{template "opt" dict "F" $f "V" $v}}{{end}}{{else}}<span class="subtle">None</span>{{end}}{{end}}</dd>
+        {{end}}{{end}}{{end}}
+      </dl>
+    </div>
+  </details>
+
+  <details class="module" open>
+    <summary>Description{{if $canEdit}}<span class="tools"><a class="btn btn-sm btn-subtle" href="/issues/{{$i.Key}}/edit">{{template "icon" "edit"}}</a></span>{{end}}</summary>
+    <div class="markdown description">{{if $i.Description}}{{md $i.Description}}{{else}}<span class="subtle">No description.</span>{{end}}</div>
+  </details>
+
+  {{range $d.Fields}}{{if eq .Type "textarea"}}{{$vals := fieldVal $i .ID}}{{if $vals}}{{if or (not .Private) ($.Can "issue.view_private" $pk)}}
+  <details class="module" {{if lt (len (index $vals 0)) 3000}}open{{end}}>
+    <summary>{{.Label}} <span class="count">{{len (index $vals 0)}} chars</span></summary>
+    <pre style="margin:0"><code>{{index $vals 0}}</code></pre>
+  </details>{{end}}{{end}}{{end}}{{end}}
+
+  <details class="module" open>
+    <summary>Attachments <span class="count">{{len $d.Attachments}}</span></summary>
+    {{if $d.Attachments}}<div class="attachments" style="margin-bottom:12px">
+      {{range $d.Attachments}}<div class="attachment">
+        <a class="thumb" href="/attachments/{{.ID}}/{{pathEscape .Filename}}" target="_blank">{{if isImage .ContentType}}<img src="/attachments/{{.ID}}/{{pathEscape .Filename}}" alt="{{.Filename}}" loading="lazy">{{else}}{{template "icon" "file"}}{{end}}</a>
+        <div class="info">
+          <a class="name" href="/attachments/{{.ID}}/{{pathEscape .Filename}}" target="_blank">{{.Filename}}</a>
+          <span class="muted">{{bytes .Size}} · {{date .CreatedAt}}</span>
+          {{if or ($.IsMe .Uploader) ($.Can "attachment.delete" $pk)}}<form method="post" action="/attachments/{{.ID}}/delete" data-confirm="Delete {{.Filename}}?" class="inline-form">{{template "csrf" $}}<button class="btn btn-sm btn-subtle btn-danger" type="submit">Delete</button></form>{{end}}
+        </div>
+      </div>{{end}}
+    </div>{{end}}
+    {{if .Can "attachment.upload" $pk}}
+    <form method="post" action="/issues/{{$i.Key}}/attach" enctype="multipart/form-data" class="dropzone">
+      {{template "csrf" .}}
+      <input type="file" name="file" multiple> <button class="btn btn-sm" type="submit">Upload</button>
+      <div class="files small"></div>
+      <div class="small">Drop files to attach, or browse. Max {{bytes .Cfg.Storage.MaxSize}}. Text logs are scanned automatically.</div>
+    </form>
+    {{else if not $d.Attachments}}<div class="subtle">No attachments.</div>{{end}}
+  </details>
+
+  {{if or $d.Links (.Can "issue.link" $pk)}}
+  <details class="module" open>
+    <summary>Issue links <span class="count">{{len $d.Links}}</span>{{if .Can "issue.link" $pk}}<span class="tools"><button type="button" class="btn btn-sm btn-subtle" data-open="#link-pop">{{template "icon" "plus"}}</button></span>{{end}}</summary>
+    {{if $d.Links}}<ul class="link-list">{{range $d.Links}}<li>
+      <span class="subtle nowrap" style="width:120px">{{linkLabel .Kind .Outgoing}}</span>
+      <a class="key" href="/issues/{{.Other.Key}}" {{if .Other.ResolvedAt}}style="text-decoration:line-through"{{end}}>{{.Other.Key}}</a>
+      <a href="/issues/{{.Other.Key}}" class="ellipsis" style="flex:1;color:var(--text)">{{.Other.Title}}</a>
+      {{template "state" dict "P" $ "Project" .Other.ProjectKey "State" .Other.State}}
+      {{if and ($.Can "issue.link" $pk) (ne .Kind "duplicates")}}<form method="post" action="/issues/{{$i.Key}}/unlink/{{.ID}}" class="inline-form">{{template "csrf" $}}<button class="btn btn-sm btn-subtle" title="Remove link">✕</button></form>{{end}}</li>{{end}}</ul>
+    {{else}}<div class="subtle">No linked issues.</div>{{end}}
+  </details>
+  {{end}}
+
+  <details class="module" open id="activity">
+    <summary>Activity</summary>
+    <div class="tabs" data-tabs>
+      <button type="button" data-filter="all" class="active">All</button>
+      <button type="button" data-filter="comment">Comments <span class="muted">{{$d.CommentCount}}</span></button>
+      <button type="button" data-filter="history">History</button>
+      {{if $d.Commits}}<button type="button" data-filter="commit">Commits <span class="muted">{{len $d.Commits}}</span></button>{{end}}
+    </div>
+    <div class="timeline" data-timeline>
+    {{range $d.Timeline}}
+      {{if .Comment}}{{$c := .Comment}}
+      <div class="comment {{if $c.Restricted}}restricted{{end}} {{if ne $c.Moderation "approved"}}pending{{end}} {{if $c.Deleted}}deleted{{end}}" id="comment-{{$c.ID}}" data-kind="comment">
+        {{template "avatar" dict "U" $c.Author "S" "32px"}}
+        <div class="bubble">
+          <div class="head">
+            {{template "user" dict "P" $ "U" $c.Author "NoAvatar" true}}
+            <a class="when" href="#comment-{{$c.ID}}" title="{{datetime $c.CreatedAt}}">{{ago $c.CreatedAt}}</a>
+            {{if ne $c.UpdatedAt $c.CreatedAt}}<span class="when" title="{{datetime $c.UpdatedAt}}">· edited</span>{{end}}
+            {{if $c.Restricted}}<span class="lozenge lz-waiting">{{template "icon" "lock"}}&nbsp;Staff only</span>{{end}}
+            {{if ne $c.Moderation "approved"}}<span class="lozenge lz-waiting">{{$c.Moderation}}</span>{{end}}
+            {{if $c.Deleted}}<span class="lozenge lz-red">Deleted</span>{{end}}
+          </div>
+          <div class="body markdown">{{md $c.Body}}</div>
+          {{if not $c.Deleted}}<div class="tools">
+            {{if or (and ($.IsMe $c.Author) ($.Can "comment.edit_own" $pk)) ($.Can "comment.edit" $pk)}}
+            <details class="popover"><summary class="btn">Edit</summary>
+              <form class="pop" method="post" action="/comments/{{$c.ID}}/edit" style="width:min(600px,90vw)">{{template "csrf" $}}
+                <textarea name="body" data-mentions>{{$c.Body}}</textarea>
+                <div class="row" style="margin-top:8px"><button class="btn btn-primary right" type="submit">Save</button></div>
+              </form></details>{{end}}
+            {{if or (and ($.IsMe $c.Author) ($.Can "comment.edit_own" $pk)) ($.Can "comment.delete" $pk)}}
+            <form method="post" action="/comments/{{$c.ID}}/delete" data-confirm="Delete this comment?" class="inline-form">{{template "csrf" $}}<button class="btn" type="submit">Delete</button></form>{{end}}
+            {{if and (ne $c.Moderation "approved") ($.Can "moderation")}}
+            <form method="post" action="/moderate/comment/{{$c.ID}}" class="inline-form">{{template "csrf" $}}<input type="hidden" name="action" value="approve"><button class="btn" type="submit" style="color:var(--ok)">Approve</button></form>{{end}}
+          </div>{{end}}
+        </div>
+      </div>
+      {{else}}{{template "event" dict "P" $ "H" .History "PK" $pk}}{{end}}
+    {{end}}
+    {{range $d.Commits}}<div class="event" data-kind="commit">{{template "icon" "git"}} <a href="{{.URL}}" target="_blank" rel="noopener"><code>{{short .SHA 10}}</code></a> <b>{{.Author}}</b> in {{.Repo}}: {{.Message}} <span title="{{datetime .CreatedAt}}">{{ago .CreatedAt}}</span></div>{{end}}
+    <div class="empty small hidden" data-empty>Nothing here yet.</div>
+    </div>
+
+    {{if and .User .User.Muted}}
+    <div class="panel p-waiting" style="margin-top:12px"><span class="panel-icon">{{template "icon" "warn"}}</span><div>You're muted {{if forever .User.MutedUntil}}and can't comment right now{{else}}until {{datetime .User.MutedUntil}}{{end}}.{{if .User.MuteReason}} Reason: {{.User.MuteReason}}{{end}}</div></div>
+    {{else if .User}}{{if .Can "comment.create" $pk}}
+    <form method="post" action="/issues/{{$i.Key}}/comment" class="reply-box" id="reply">
+      {{template "avatar" dict "U" .User "S" "32px"}}
+      <div class="bubble">
+        {{template "csrf" .}}
+        {{template "editor" dict "Name" "body" "ID" "comment-body" "Placeholder" "Add a comment…  (r to focus, Ctrl+Enter to save)" "Required" true}}
+        {{if .Captcha "comment"}}{{template "captcha" .}}{{end}}
+        <div class="row" style="margin-top:8px">
+          <button class="btn btn-primary" type="submit">Save</button>
+          {{if .Can "comment.restricted" $pk}}<label class="check"><input type="checkbox" name="restricted" value="1"> {{template "icon" "lock"}} Visible to staff only</label>{{end}}
+          {{if and (.IsMe $i.Reporter) (eq $st.Category "waiting")}}<span class="small subtle right">Replying sends this back to the triage queue.</span>{{end}}
+        </div>
+      </div>
+    </form>
+    {{end}}{{else}}
+    <div class="panel" style="margin-top:12px"><span class="panel-icon">{{template "icon" "info"}}</span><div><a href="/login?next=/issues/{{$i.Key}}">Log in</a> to comment, vote or tell us this affects you too.</div></div>
+    {{end}}
+  </details>
+</div>
+
+<aside>
+  <details class="side-panel" open>
+    <summary>People</summary>
+    <div class="sp-body">
+      <dl class="kv">
+        <dt>Assignee</dt><dd>{{template "user" dict "P" . "U" $i.Assignee}}
+          {{if and (.Can "issue.assign" $pk) (not (.IsMe $i.Assignee))}}<form method="post" action="/issues/{{$i.Key}}/triage" class="inline-form">{{template "csrf" .}}<input type="hidden" name="assignee" value="me"><button class="btn btn-sm btn-subtle" type="submit" style="color:var(--link);padding:0">Assign to me</button></form>{{end}}</dd>
+        <dt>Reporter</dt><dd>{{template "user" dict "P" . "U" $i.Reporter}}</dd>
+        <dt>Votes</dt><dd>{{if .User}}<form method="post" action="/issues/{{$i.Key}}/vote" data-toggle="vote">{{template "csrf" .}}<input type="hidden" name="on" value="{{if $d.Voted}}0{{else}}1{{end}}">
+          <button class="btn btn-sm {{if $d.Voted}}on{{end}}" type="submit" title="Vote (v)"><b data-count>{{$i.Votes}}</b> <span data-label data-on="Remove vote" data-off="Vote for this issue">{{if $d.Voted}}Remove vote{{else}}Vote for this issue{{end}}</span></button></form>{{else}}{{$i.Votes}}{{end}}</dd>
+        <dt>Watchers</dt><dd>{{if .User}}<form method="post" action="/issues/{{$i.Key}}/watch" data-toggle="watch">{{template "csrf" .}}<input type="hidden" name="on" value="{{if $d.Watching}}0{{else}}1{{end}}">
+          <button class="btn btn-sm {{if $d.Watching}}on{{end}}" type="submit" title="Watch (w)"><b data-count>{{$i.Watchers}}</b> <span data-label data-on="Stop watching" data-off="Start watching">{{if $d.Watching}}Stop watching{{else}}Start watching{{end}}</span></button></form>{{else}}{{$i.Watchers}}{{end}}</dd>
+        <dt>Also affected</dt><dd>{{$i.Confirmations}} {{if eq $i.Confirmations 1}}person{{else}}people{{end}}</dd>
+      </dl>
+      {{if and .User (.Can "issue.confirm" $pk) (or (not $d.Closed) (eq $i.Resolution "fixed"))}}
+      <details class="popover" id="confirm" style="display:block;margin-top:8px">
+        <summary class="btn btn-block">{{template "icon" "users"}} {{if eq $i.Resolution "fixed"}}Still happens for me{{else}}I have this too{{end}}</summary>
+        <form class="pop" method="post" action="/issues/{{$i.Key}}/confirm">{{template "csrf" .}}
+          <h3>{{if eq $i.Resolution "fixed"}}Still happens for me{{else}}I have this too{{end}}</h3>
+          <p class="small subtle">Adds your vote and environment to this issue{{if eq $i.Resolution "fixed"}}. If you're on a version newer than the fix, it's reopened for triage{{end}}.</p>
+          <div class="field"><label>Version</label><select name="version"><option value="">Not sure</option>{{range $n, $v := $d.Versions}}<option>{{$v.Name}}</option>{{end}}</select></div>
+          {{range $d.EnvFields}}<div class="field"><label>{{.Label}}</label>{{template "field_input" dict "F" . "Versions" $d.Versions}}</div>{{end}}
+          <div class="field"><label>Note (optional)</label><input type="text" name="note" maxlength="500" placeholder="e.g. only with mods installed"></div>
+          <div class="row"><button class="btn btn-primary right" type="submit">Confirm</button></div>
+        </form>
+      </details>{{end}}
+    </div>
+  </details>
+
+  <details class="side-panel" open>
+    <summary>Dates</summary>
+    <div class="sp-body"><dl class="kv">
+      <dt>Created</dt><dd title="{{datetime $i.CreatedAt}}">{{datetime $i.CreatedAt}}</dd>
+      <dt>Updated</dt><dd title="{{datetime $i.UpdatedAt}}">{{ago $i.UpdatedAt}}</dd>
+      {{if $i.ResolvedAt}}<dt>Resolved</dt><dd title="{{datetime $i.ResolvedAt}}">{{datetime $i.ResolvedAt}}</dd>{{end}}
+    </dl></div>
+  </details>
+
+  {{if $d.Env}}
+  <details class="side-panel" open>
+    <summary>Who's affected</summary>
+    <div class="sp-body">
+    {{range $d.Env}}<div style="margin:6px 0 10px"><div class="small subtle" style="font-weight:600;margin-bottom:4px">{{.Label}}</div>
+      {{range .Values}}<div class="env-row"><span>{{.Label}}</span><span class="muted">{{.Count}} · {{printf "%.0f" .Percent}}%</span><div class="bar"><span style="width:{{printf "%.0f" .Percent}}%"></span></div></div>{{end}}
+    </div>{{end}}
+    </div>
+  </details>
+  {{end}}
+
+  {{if or $d.CrashSiblings $d.Similar}}
+  <details class="side-panel" open>
+    <summary>Related</summary>
+    <div class="sp-body">
+      {{if $d.CrashSiblings}}<div class="link-group">{{template "icon" "bolt"}} Same crash signature</div>
+      <ul class="link-list">{{range $d.CrashSiblings}}<li><a class="key" href="/issues/{{.Key}}">{{.Key}}</a> <span class="ellipsis small" style="flex:1">{{.Title}}</span></li>{{end}}</ul>{{end}}
+      {{if $d.Similar}}<div class="link-group">Possible duplicates</div>
+      <ul class="link-list">{{range $d.Similar}}<li><a class="key" href="/issues/{{.Issue.Key}}">{{.Issue.Key}}</a> <span class="ellipsis small" style="flex:1" title="{{.Issue.Title}}">{{.Issue.Title}}</span></li>{{end}}</ul>{{end}}
+    </div>
+  </details>
+  {{end}}
+
+  {{if $d.Commits}}
+  <details class="side-panel" open>
+    <summary>{{template "icon" "git"}} Development</summary>
+    <div class="sp-body"><div class="small">{{len $d.Commits}} commit{{if gt (len $d.Commits) 1}}s{{end}} reference this issue.</div></div>
+  </details>
+  {{end}}
+
+  {{if and (ne $i.Moderation "approved") (.Can "moderation" $pk)}}
+  <div class="side-panel"><div class="sp-head">Moderation</div><div class="sp-body row">
+    <form method="post" action="/moderate/issue/{{$i.ID}}">{{template "csrf" .}}<input type="hidden" name="action" value="approve"><button class="btn btn-success" type="submit">Approve</button></form>
+    <form method="post" action="/moderate/issue/{{$i.ID}}">{{template "csrf" .}}<input type="hidden" name="action" value="reject"><button class="btn btn-danger" type="submit">Reject</button></form>
+  </div></div>{{end}}
+</aside>
+</div>
+{{end}}
+
+{{define "event"}}{{$h := .H}}{{$P := .P}}<div class="event" data-kind="history">
+  {{template "avatar" dict "U" $h.Actor "S" "20px"}} <b>{{if $h.Actor}}{{$h.Actor.Name}}{{else}}someone{{end}}</b>
+  {{if eq $h.Field "state"}}changed the status {{if $h.Old}}from {{template "state" dict "P" $P "Project" .PK "State" $h.Old}} {{end}}to {{template "state" dict "P" $P "Project" .PK "State" $h.New}}
+  {{else if eq $h.Field "resolution"}}{{if $h.New}}set the resolution to <b>{{($P.Resolution .PK $h.New).Label}}</b>{{else}}cleared the resolution{{end}}
+  {{else if eq $h.Field "title"}}changed the summary from “{{$h.Old}}”
+  {{else if eq $h.Field "description"}}updated the description
+  {{else if eq $h.Field "labels"}}changed the labels {{if $h.New}}to <b>{{$h.New}}</b>{{else}}(removed all){{end}}
+  {{else if eq $h.Field "assignee"}}{{if $h.New}}assigned this to <b>@{{$h.New}}</b>{{else}}unassigned @{{$h.Old}}{{end}}
+  {{else if eq $h.Field "private"}}made this issue {{if eq $h.New "true"}}<b>private</b>{{else}}<b>public</b>{{end}}
+  {{else if eq $h.Field "affects_versions"}}set the affected versions to <b>{{or $h.New "none"}}</b>
+  {{else if eq $h.Field "fix_versions"}}set the fix versions to <b>{{or $h.New "none"}}</b>
+  {{else if eq $h.Field "duplicate"}}marked this as a duplicate of <a href="/issues/{{$h.New}}">{{$h.New}}</a>
+  {{else if eq $h.Field "duplicated_by"}}marked <a href="/issues/{{$h.New}}">{{$h.New}}</a> as a duplicate of this issue
+  {{else if eq $h.Field "link"}}{{if $h.New}}added a link: {{$h.New}}{{else}}removed a “{{$h.Old}}” link{{end}}
+  {{else if eq $h.Field "attachment"}}attached <b>{{$h.New}}</b>
+  {{else if eq $h.Field "attachment_deleted"}}deleted the attachment {{$h.Old}}
+  {{else if eq $h.Field "fingerprint"}}detected crash signature <code>{{$h.New}}</code>
+  {{else if eq $h.Field "commit"}}referenced this in commit <code>{{$h.New}}</code>
+  {{else if eq $h.Field "confirmed"}}confirmed this still happens in <b>{{$h.New}}</b>
+  {{else if eq $h.Field "imported"}}imported this from {{$h.New}}
+  {{else}}{{$fid := trimPrefix $h.Field "field:"}}{{$f := $P.Field $fid}}changed <b>{{if $f}}{{$f.Label}}{{else}}{{$h.Field}}{{end}}</b>{{if and $f (not $f.Private) (ne $f.Type "textarea")}} to {{or $h.New "None"}}{{end}}{{end}}
+  <span title="{{datetime $h.CreatedAt}}">· {{ago $h.CreatedAt}}</span>
+</div>{{end}}

@@ -1,0 +1,31 @@
+{{define "sidebar"}}{{template "project_sidebar" dict "P" . "Project" (.Cfg.Project .Data.Issue.ProjectKey) "Active" "issues"}}{{end}}
+{{define "content"}}{{$d := .Data}}{{$i := $d.Issue}}{{$pk := $i.ProjectKey}}
+{{$canEdit := or (.Can "issue.edit" $pk) (and (.IsMe $i.Reporter) (.Can "issue.edit_own" $pk))}}
+{{$posted := gt (len .Form) 0}}
+<div class="breadcrumbs"><a href="/?all=1">Projects</a><span class="sep">/</span><a href="/projects/{{$pk}}">{{(.Cfg.Project $pk).Name}}</a><span class="sep">/</span><a href="/issues/{{$i.Key}}">{{$i.Key}}</a></div>
+<div class="page-head"><h1>Edit issue</h1></div>
+<form method="post" action="/issues/{{$i.Key}}/edit" class="card card-body form-card">
+  {{template "csrf" .}}
+  {{if $canEdit}}
+  <div class="field {{if .Err "title"}}has-error{{end}}"><label>Summary</label><input type="text" name="title" value="{{if $posted}}{{.FormValue "title"}}{{else}}{{$i.Title}}{{end}}" maxlength="250">{{with .Err "title"}}<div class="error">{{.}}</div>{{end}}</div>
+  <div class="field"><label>Description</label>{{template "editor" dict "Name" "description" "Value" (or (.FormValue "description") $i.Description)}}</div>
+  <div class="field"><label>Affected versions</label><div class="options">{{range $d.Versions}}<label><input type="checkbox" name="affects_versions" value="{{.Name}}" {{if contains (versionNames $i.Affects) .Name}}checked{{end}}> {{.Name}}</label>{{end}}</div></div>
+  {{end}}
+  {{range $d.Fields}}{{if or $canEdit (and .EditPermission ($.Can .EditPermission $pk))}}
+  <div class="field {{if $.Err .ID}}has-error{{end}}"><label for="f_{{.ID}}">{{.Label}}{{if .EditPermission}} <span class="lozenge lz-active">staff</span>{{end}}</label>
+    {{template "field_input" dict "F" . "Values" (fieldVal $i .ID) "Versions" $d.Versions}}
+    {{if .Help}}<div class="help">{{.Help}}</div>{{end}}{{with $.Err .ID}}<div class="error">{{.}}</div>{{end}}</div>
+  {{end}}{{end}}
+  {{if or (.Can "issue.label" $pk) $canEdit}}
+  <div class="field"><label>Labels</label>
+    <div class="options">{{range $d.Labels}}{{if or (not .Restricted) ($.Can "issue.label" $pk)}}<label title="{{.Description}}"><input type="checkbox" name="labels" value="{{.Name}}" {{if contains $i.Labels .Name}}checked{{end}}> {{.Name}}</label>{{end}}{{end}}</div>
+    {{if .Can "issue.label" $pk}}<input type="text" name="labels_extra" placeholder="Other labels, comma separated" style="margin-top:.5rem" value="{{range $i.Labels}}{{if not ($.Cfg.Label .)}}{{.}}, {{end}}{{end}}">{{end}}
+  </div>{{end}}
+  {{if or (.Can "issue.edit" $pk) (.Can "version.manage" $pk)}}
+  <div class="field"><label>Fix versions</label><div class="options">{{range $d.Versions}}<label><input type="checkbox" name="fix_versions" value="{{.Name}}" {{if contains (versionNames $i.FixVersions) .Name}}checked{{end}}> {{.Name}}</label>{{end}}</div></div>{{end}}
+  {{if .Can "issue.assign" $pk}}<div class="field"><label>Assignee</label><input type="text" name="assignee" value="{{if $i.Assignee}}{{$i.Assignee.Username}}{{end}}" placeholder="username, me, or empty"></div>{{end}}
+  {{if or (.Can "issue.edit" $pk) (.Can "issue.view_private" $pk) (.IsMe $i.Reporter)}}
+  <div class="field"><input type="hidden" name="private_present" value="1"><label class="check"><input type="checkbox" name="private" value="1" {{if $i.Private}}checked{{end}}> {{template "icon" "lock"}} Private (security issue)</label></div>{{end}}
+  <div class="row"><div class="right row"><a class="btn btn-subtle" href="/issues/{{$i.Key}}">Cancel</a><button class="btn btn-primary" type="submit">Update</button></div></div>
+</form>
+{{end}}

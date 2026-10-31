@@ -1,0 +1,61 @@
+{{define "sidebar"}}{{template "project_sidebar" dict "P" . "Project" .Data.Project "Active" "summary"}}{{end}}
+{{define "content"}}{{$d := .Data}}{{$p := $d.Project}}{{$wf := .Workflow $p.Key}}
+{{$total := add (add (index $d.Categories "open") (index $d.Categories "waiting")) (add (index $d.Categories "active") (index $d.Categories "closed"))}}
+<div class="breadcrumbs"><a href="/?all=1">Projects</a><span class="sep">/</span><span>{{$p.Name}}</span></div>
+<div class="page-head">
+  <div><h1>Summary</h1>{{if $p.Description}}<div class="desc">{{$p.Description}}</div>{{end}}</div>
+  <div class="actions">
+    <a class="btn btn-subtle" href="/feeds/projects/{{$p.Key}}.atom" title="Atom feed">{{template "icon" "rss"}}</a>
+    <a class="btn" href="/issues?q=project:{{$p.Key}}+is:open">View issues</a>
+    {{if .Can "issue.create" $p.Key}}<a class="btn btn-primary" href="/projects/{{$p.Key}}/new">Report a bug</a>{{else if not .User}}<a class="btn btn-primary" href="/login?next=/projects/{{$p.Key}}/new">Log in to report</a>{{end}}
+  </div>
+</div>
+
+<div class="stat-cards">
+  <a class="stat-card" href="/issues?q=project:{{$p.Key}}+is:open"><div class="n">{{add (add (index $d.Categories "open") (index $d.Categories "waiting")) (index $d.Categories "active")}}</div><div class="l">Open issues</div></a>
+  <a class="stat-card" href="/issues?q=project:{{$p.Key}}+category:active"><div class="n">{{index $d.Categories "active"}}</div><div class="l">In progress / confirmed</div></a>
+  <a class="stat-card" href="/issues?q=project:{{$p.Key}}+category:waiting"><div class="n">{{index $d.Categories "waiting"}}</div><div class="l">Waiting for reporter</div></a>
+  <a class="stat-card" href="/issues?q=project:{{$p.Key}}+is:closed"><div class="n">{{index $d.Categories "closed"}}</div><div class="l">Resolved</div></a>
+</div>
+
+<div class="with-sidebar">
+  <div class="stack">
+    <section class="gadget">
+      <div class="g-head"><h2>Status overview</h2><span class="muted small">{{$total}} issues</span></div>
+      <div class="card-body">
+        <div class="status-bar">{{range $c := list "open" "waiting" "active" "closed"}}{{$n := index $d.Categories $c}}{{if $n}}<span class="sb-{{$c}}" style="width:{{pct $n $total}}%" title="{{$c}}: {{$n}}"></span>{{end}}{{end}}</div>
+        <table class="table">
+          {{range $wf.States}}<tr><td>{{template "state" dict "P" $ "Project" $p.Key "State" .ID}}</td><td class="subtle small">{{excerpt (explain .Explain) 90}}</td><td style="text-align:right"><a href="/issues?q=project:{{$p.Key}}+status:{{.ID}}">{{index $d.States .ID}}</a></td></tr>{{end}}
+        </table>
+      </div>
+    </section>
+    <section class="gadget">
+      <div class="g-head"><h2>Hot issues</h2><a href="/issues?q=project:{{$p.Key}}+is:open+sort:votes">Most voted</a></div>
+      {{template "issue_table" dict "P" . "Issues" $d.Trending "Compact" true "Empty" "No activity in the last 7 days."}}
+    </section>
+    <section class="gadget">
+      <div class="g-head"><h2>Created recently</h2><a href="/issues?q=project:{{$p.Key}}+sort:created">View all</a></div>
+      {{template "issue_table" dict "P" . "Issues" $d.Recent "Compact" true}}
+    </section>
+  </div>
+  <aside class="stack">
+    <section class="gadget">
+      <div class="g-head"><h2>Releases</h2><a href="/projects/{{$p.Key}}/releases">View all</a></div>
+      {{if $d.Versions}}<ul class="version-list">
+        {{range $d.Versions}}<li>
+          {{template "icon" "ship"}}<a href="/projects/{{$p.Key}}/changelog/{{pathEscape .Name}}"><b>{{.Name}}</b></a>
+          {{if .Released}}<span class="lozenge lz-closed">Released</span>{{else}}<span class="lozenge">Unreleased</span>{{end}}
+          <span class="right small subtle">{{.Fixed}} fixed · {{.Affected}} affected</span>
+        </li>{{end}}
+      </ul>{{else}}<div class="empty small">No versions yet.</div>{{end}}
+    </section>
+    {{if $d.Labels}}<section class="gadget">
+      <div class="g-head"><h2>Labels</h2></div>
+      <div class="card-body tag-cloud">{{range $name, $n := $d.Labels}}<a class="label-chip" style="--c:{{$.LabelColor $name}}" href="/issues?q=project:{{$p.Key}}+label:{{$name}}+is:open">{{$name}}&nbsp;<span class="muted">{{$n}}</span></a>{{end}}</div>
+    </section>{{end}}
+    <div class="panel"><span class="panel-icon">{{template "icon" "info"}}</span><div class="small">
+      <b>Before you report</b><br>
+      Search first and vote on existing reports. Use <b>I have this too</b> to add your environment to an existing issue, and attach logs so crash signatures are detected automatically.</div></div>
+  </aside>
+</div>
+{{end}}

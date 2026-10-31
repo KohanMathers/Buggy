@@ -1,0 +1,247 @@
+# Built-in defaults. Your config.yml is layered on top of this file: scalars and maps are overridden key by key, lists are replaced entirely.
+
+instance:
+  name: Buggy
+  description: Bug tracker
+  url: http://localhost:8080
+  # image URL or path; empty -> plain colour square
+  logo: "" 
+  default_avatar: https://upload.wikimedia.org/wikipedia/commons/a/ac/Default_pfp.jpg
+  theme:
+    primary: "#0c66e4"
+    accent: "#f59e0b"
+    mode: auto
+    radius: 3px
+    font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", Ubuntu, sans-serif
+    mono_font: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace
+    font_size: 14px
+    font_url: ""
+    colors: {}
+    dark_colors: {}
+  default_locale: en
+  issues_per_page: 50
+
+server:
+  listen: ":8080"
+  dev: false
+  web_dir: web
+  data_dir: ./data
+  cookie_secure: auto
+  metrics: true
+  automation_interval: 5m
+  reload_interval: 2s
+
+database:
+  driver: sqlite
+  # defaults to <data_dir>/buggy.db for sqlite
+  dsn: ""
+
+storage:
+  driver: local
+  # defaults to <data_dir>/attachments
+  path: ""
+  max_size: 25MB
+  parse_max_size: 4MB
+  # empty = any; e.g. [".png", ".jpg", ".log", ".txt", ".zip"]
+  allowed_types: []
+
+auth:
+  local:
+    enabled: true
+    registration: open
+    min_password: 8
+  first_user_admin: true
+  default_role: user
+  anonymous_role: anonymous
+  session_ttl: 30d
+
+roles:
+  anonymous:
+    label: Guest
+    permissions: [issue.view]
+  user:
+    label: User
+    inherits: [anonymous]
+    permissions:
+      - issue.create
+      - issue.edit_own
+      - issue.vote
+      - issue.watch
+      - issue.confirm
+      - comment.create
+      - comment.edit_own
+      - attachment.upload
+      - api.token
+      - search.save
+  helper:
+    label: Helper
+    badge: Helper
+    color: "#10b981"
+    inherits: [user]
+    permissions: [triage, issue.link, issue.duplicate, issue.label, canned.use, comment.restricted]
+  moderator:
+    label: Moderator
+    badge: Mod
+    color: "#8b5cf6"
+    inherits: [helper]
+    permissions:
+      - issue.edit
+      - issue.transition
+      - issue.assign
+      - issue.view_private
+      - issue.bulk
+      - comment.edit
+      - comment.delete
+      - attachment.delete
+      - moderation
+      - search.save_public
+  developer:
+    label: Developer
+    badge: Dev
+    color: "#ef4444"
+    inherits: [moderator]
+    permissions: [version.manage, issue.delete]
+  admin:
+    label: Administrator
+    badge: Admin
+    color: "#f43f5e"
+    permissions: ["*"]
+
+workflows:
+  default:
+    initial: open
+    duplicate_state: resolved
+    duplicate_resolution: duplicate
+    states:
+      - id: open
+        label: Open
+        category: open
+        color: "#3b82f6"
+        explain: This report hasn't been reviewed yet. Helpers and moderators will look at it soon, so make sure the steps to reproduce are clear.
+      - id: awaiting_response
+        label: Awaiting Response
+        category: waiting
+        color: "#f59e0b"
+        on_reporter_reply: open
+        explain: We need more information from the reporter. Reply with a comment and the report goes back into the queue automatically.
+      - id: confirmed
+        label: Confirmed
+        category: active
+        color: "#8b5cf6"
+        explain: This bug has been reproduced and is waiting for a developer. Vote to show it affects you.
+      - id: in_progress
+        label: In Progress
+        category: active
+        color: "#06b6d4"
+        explain: A developer is working on this.
+      - id: resolved
+        label: Resolved
+        category: closed
+        color: "#10b981"
+    resolutions:
+      - id: fixed
+        label: Fixed
+        color: "#10b981"
+        explain: This has been fixed{{if .FixVersions}} in {{.FixVersions}}{{end}}. If it still happens after updating, open a new report and link this one.
+      - id: duplicate
+        label: Duplicate
+        color: "#6b7280"
+        valid: false
+        explain: This is a duplicate of {{.Duplicate}}. Your vote and environment details were moved there, so please follow that issue instead.
+      - id: works_as_intended
+        label: Works As Intended
+        color: "#6b7280"
+        valid: false
+        explain: This is the intended behaviour. If you think it should change, this isn't the right place. Suggest it through the feedback channels instead.
+      - id: wont_fix
+        label: Won't Fix
+        color: "#6b7280"
+        explain: This is a real issue, but the team has decided not to fix it right now.
+      - id: cannot_reproduce
+        label: Cannot Reproduce
+        color: "#6b7280"
+        explain: Nobody could reproduce this. If you can still reproduce it, comment with detailed steps and it can be reopened.
+      - id: incomplete
+        label: Incomplete
+        color: "#6b7280"
+        valid: false
+        explain: There wasn't enough information to act on this. Feel free to open a new report with the requested details.
+      - id: invalid
+        label: Invalid
+        color: "#6b7280"
+        valid: false
+        explain: This report isn't a bug report for this project (support requests, spam, or unrelated content).
+      - id: withdrawn
+        label: Withdrawn
+        color: "#6b7280"
+        valid: false
+        explain: The reporter closed this report.
+    transitions:
+      - id: confirm
+        label: Confirm
+        from: [open, awaiting_response]
+        to: confirmed
+        permission: triage
+        style: primary
+      - id: request_info
+        label: Request info
+        from: [open, confirmed]
+        to: awaiting_response
+        permission: triage
+        require_comment: true
+      - id: start
+        label: Start progress
+        from: [confirmed, open]
+        to: in_progress
+        permission: issue.transition
+      - id: stop
+        label: Stop progress
+        from: [in_progress]
+        to: confirmed
+        permission: issue.transition
+      - id: triage_resolve
+        label: Resolve
+        from: [open, awaiting_response, confirmed]
+        to: resolved
+        permission: triage
+        resolutions: [duplicate, works_as_intended, cannot_reproduce, incomplete, invalid]
+      - id: resolve
+        label: Resolve
+        from: [open, awaiting_response, confirmed, in_progress]
+        to: resolved
+        permission: issue.transition
+        style: success
+      - id: withdraw
+        label: Close my report
+        from: [open, awaiting_response, confirmed]
+        to: resolved
+        reporter: true
+        resolutions: [withdrawn]
+      - id: reopen
+        label: Reopen
+        from: [resolved]
+        to: open
+        permission: issue.transition
+
+notifications:
+  mentions: true
+  email:
+    enabled: false
+    port: 587
+    tls: starttls
+
+spam:
+  rate_limits:
+    issue: 10
+    comment: 60
+    register: 5
+    upload: 40
+    vote: 300
+  first_post_moderation: false
+
+reputation:
+  report_valid: 10
+  report_fixed: 15
+  duplicate_found: 3
+  confirmation: 1
+  comment: 0

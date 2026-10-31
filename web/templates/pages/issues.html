@@ -1,0 +1,63 @@
+{{define "sidebar"}}{{$d := .Data}}{{with .Cfg.Project $d.Project}}{{template "project_sidebar" dict "P" $ "Project" . "Active" "issues"}}{{else}}{{template "filters_sidebar" dict "P" . "Query" $d.Result.Query "Saved" $d.Saved}}{{end}}{{end}}
+{{define "content"}}{{$d := .Data}}{{$r := $d.Result}}{{$canBulk := or (.Can "issue.bulk") (.Can "triage")}}
+{{with .Cfg.Project $d.Project}}<div class="breadcrumbs"><a href="/?all=1">Projects</a><span class="sep">/</span><a href="/projects/{{.Key}}">{{.Name}}</a></div>{{end}}
+<div class="page-head">
+  <h1>{{if $d.Project}}Issues{{else}}{{.T "issues.title" "Search issues"}}{{end}}</h1>
+  <div class="actions">
+    {{if .Can "search.save"}}
+    <details class="popover right"><summary class="btn">Save filter</summary>
+      <form class="pop" method="post" action="/searches">{{template "csrf" .}}
+        <input type="hidden" name="q" value="{{$r.Query}}">
+        <div class="field"><label>Filter name</label><input type="text" name="name" placeholder="{{$r.Query}}" required></div>
+        {{if .Can "search.save_public"}}<label class="check"><input type="checkbox" name="public" value="1"> Share with everyone</label>{{end}}
+        <div class="row" style="margin-top:12px"><button class="btn btn-primary right" type="submit">Save</button></div>
+      </form>
+    </details>
+    {{end}}
+    <a class="btn" href="/feeds/issues.atom?q={{$r.Query}}" title="Atom feed for this filter">{{template "icon" "rss"}} Feed</a>
+    <a class="btn" href="/api/v1/issues?q={{$r.Query}}" title="Same results as JSON">Export</a>
+  </div>
+</div>
+
+<form method="get" action="/issues" class="jql">
+  <input type="search" name="q" value="{{$r.Query}}" placeholder="project:{{or $d.Project "APP"}} status:open label:crash version:>=1.2 sort:votes" autocomplete="off" aria-label="Query">
+  <button class="btn btn-primary" type="submit" style="height:auto">Search</button>
+  <a class="btn btn-subtle" href="/help#search" style="height:auto">Syntax</a>
+</form>
+{{if $r.Error}}<div class="flash flash-error">{{template "icon" "warn"}}<div>{{$r.Error}}</div></div>{{end}}
+{{$pq := ""}}{{if $d.Project}}{{$pq = printf "project:%s " $d.Project}}{{end}}
+<div class="quick-filters">
+  <a href="/issues?q={{(printf "%sis:open" $pq)}}" {{if eq $r.Query (printf "%sis:open" $pq)}}class="active"{{end}}>Open</a>
+  {{if .User}}<a href="/issues?q={{(printf "%sassignee:me is:open" $pq)}}" {{if eq $r.Query (printf "%sassignee:me is:open" $pq)}}class="active"{{end}}>Assigned to me</a>
+  <a href="/issues?q={{(printf "%sreporter:me" $pq)}}" {{if eq $r.Query (printf "%sreporter:me" $pq)}}class="active"{{end}}>Reported by me</a>{{end}}
+  <a href="/issues?q={{(printf "%sis:open sort:votes" $pq)}}" {{if eq $r.Query (printf "%sis:open sort:votes" $pq)}}class="active"{{end}}>Most voted</a>
+  <a href="/issues?q={{(printf "%sis:open sort:affected" $pq)}}" {{if eq $r.Query (printf "%sis:open sort:affected" $pq)}}class="active"{{end}}>Most affected</a>
+  <a href="/issues?q={{(printf "%shas:fingerprint is:open sort:votes" $pq)}}" {{if eq $r.Query (printf "%shas:fingerprint is:open sort:votes" $pq)}}class="active"{{end}}>Crashes</a>
+  <a href="/issues?q={{(printf "%sis:open is:unassigned" $pq)}}" {{if eq $r.Query (printf "%sis:open is:unassigned" $pq)}}class="active"{{end}}>Unassigned</a>
+  <a href="/issues?q={{(printf "%sis:closed sort:updated" $pq)}}" {{if eq $r.Query (printf "%sis:closed sort:updated" $pq)}}class="active"{{end}}>Recently resolved</a>
+</div>
+
+<div class="navigator-head">
+  <span>{{if $r.Total}}<b>{{add (mul (sub $r.Page 1) $d.PerPage) 1}}–{{add (mul (sub $r.Page 1) $d.PerPage) (len $r.Issues)}}</b> of <b>{{$r.Total}}</b>{{else}}0 issues{{end}}</span>
+  {{if and $canBulk $r.Issues}}<span class="right muted small">Select with <kbd>x</kbd>, move with <kbd>j</kbd> / <kbd>k</kbd></span>{{end}}
+</div>
+{{template "issue_table" dict "P" . "Issues" $r.Issues "Select" (and $canBulk (gt (len $r.Issues) 0)) "Query" $r.Query "Empty" "No issues match this filter."}}
+{{template "pagination" dict "Page" $r.Page "Pages" $r.Pages "Query" .Query}}
+
+{{if $canBulk}}
+<form id="bulk-form" method="post" action="/issues/bulk" class="bulk-bar hidden" data-confirm="Apply this change to the selected issues?">
+  {{template "csrf" .}}
+  <b><span data-selected-count>0</span> selected</b>
+  {{if $d.Project}}{{$wf := .Workflow $d.Project}}
+  <select name="transition"><option value="">Transition…</option>{{range $wf.Transitions}}<option value="{{.ID}}" data-closed="{{if ($.State $d.Project .To).Closed}}1{{end}}">{{.Label}} → {{($.State $d.Project .To).Label}}</option>{{end}}</select>
+  <select name="resolution" id="bulk-resolution"><option value="">Resolution…</option>{{range $wf.Resolutions}}<option value="{{.ID}}">{{.Label}}</option>{{end}}</select>
+  {{end}}
+  <input type="text" name="duplicate_of" placeholder="Duplicate of KEY-1" size="14">
+  <input type="text" name="add_labels" placeholder="Add labels" size="10">
+  <input type="text" name="remove_labels" placeholder="Remove labels" size="10">
+  {{if $d.Canned}}<select name="canned"><option value="">Canned response…</option>{{range $d.Canned}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>{{end}}
+  <input type="text" name="comment" placeholder="Comment (optional)" style="flex:1;min-width:180px">
+  <button class="btn btn-primary" type="submit">Apply</button>
+</form>
+{{end}}
+{{end}}

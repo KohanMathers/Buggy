@@ -1,0 +1,36 @@
+{{define "content"}}{{$d := .Data}}
+<h1>Help</h1>
+<div class="grid grid-2">
+  <div class="card card-body" id="search">
+    <h2>Search syntax</h2>
+    <p class="small muted">Combine free text with filters. Comma-separate values for “any of”, prefix with <code>-</code> to exclude.</p>
+    <table class="table">{{range $d.Keys}}<tr><td><code>{{.Key}}</code></td><td class="small">{{.Help}}</td></tr>{{end}}
+      {{range $d.Fields}}<tr><td><code>{{.Key}}</code></td><td class="small">Custom field: {{.Help}}</td></tr>{{end}}</table>
+    <p class="small">Example: <a href="/issues?q=crash+is:open+label:crash+sort:votes"><code>crash is:open label:crash sort:votes</code></a></p>
+  </div>
+  <div class="stack">
+    <div class="card card-body" id="shortcuts">
+      <h2>Keyboard shortcuts</h2>
+      <table class="table">
+        <tr><td><kbd>/</kbd></td><td>Search</td></tr><tr><td><kbd>c</kbd></td><td>Report a bug</td></tr>
+        <tr><td><kbd>j</kbd> <kbd>k</kbd></td><td>Move through issue lists</td></tr><tr><td><kbd>o</kbd></td><td>Open selected issue</td></tr>
+        <tr><td><kbd>x</kbd></td><td>Select for bulk actions</td></tr><tr><td><kbd>v</kbd> / <kbd>w</kbd></td><td>Vote / watch</td></tr>
+        <tr><td><kbd>r</kbd></td><td>Reply</td></tr><tr><td><kbd>e</kbd></td><td>Edit issue</td></tr><tr><td><kbd>d</kbd></td><td>Mark duplicate</td></tr>
+        <tr><td><kbd>g</kbd> then <kbd>h</kbd>/<kbd>i</kbd>/<kbd>n</kbd>/<kbd>t</kbd></td><td>Go home / issues / notifications / triage</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Show shortcuts</td></tr>
+      </table>
+    </div>
+    <div class="card card-body" id="markdown">
+      <h2>Formatting</h2>
+      <p class="small">Comments and descriptions use Markdown: <code>**bold**</code>, <code>`code`</code>, fenced code blocks with <code>```</code>, lists, tables and links. Mention people with <code>@username</code> and link issues by key, e.g. <code>APP-12</code>.</p>
+    </div>
+    <div class="card card-body">
+      <h2>What the statuses mean</h2>
+      {{range .Projects}}{{$wf := $.Workflow .Key}}<h3>{{.Name}}</h3>
+        {{range $wf.States}}<p class="small"><span class="lozenge lz-{{.Category}}">{{.Label}}</span> {{explain .Explain}}</p>{{end}}
+        <h4 class="small muted">Resolutions</h4>{{range $wf.Resolutions}}<p class="small"><b>{{.Label}}:</b> <span class="muted">{{excerpt (explain .Explain) 300}}</span></p>{{end}}
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}

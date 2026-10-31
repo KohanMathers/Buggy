@@ -1,0 +1,19 @@
+{{define "content"}}{{$d := .Data}}
+<div style="max-width:640px;margin:24px auto">
+  <div class="page-head"><div><h1>Save your recovery codes</h1>
+    <div class="desc">If you forget your password, you can use one of these codes on the <b>Forgot password</b> page to set a new one. Each code works once.</div></div></div>
+  <div class="panel p-waiting" style="margin-bottom:16px"><span class="panel-icon">{{template "icon" "warn"}}</span><div>
+    <b>This is the only time these codes are shown.</b> Store them somewhere safe, like a password manager. Generating new codes invalidates these.</div></div>
+  <div class="card card-body">
+    <div id="recovery-codes" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px 24px;font-family:var(--mono);font-size:15px;padding:8px 0 16px">
+      {{range $d.Codes}}<div>{{.}}</div>{{end}}
+    </div>
+    <div class="row">
+      <button class="btn" type="button" data-copy-codes>Copy</button>
+      <button class="btn" type="button" data-download-codes data-filename="{{.Cfg.Instance.Name}}-recovery-codes.txt">Download</button>
+      <button class="btn" type="button" onclick="window.print()">Print</button>
+      <a class="btn btn-primary right" href="{{$d.Next}}">I've saved my codes</a>
+    </div>
+  </div>
+</div>
+{{end}}
